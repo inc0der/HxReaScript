@@ -1,0 +1,21 @@
+# Main class
+-main test.Test
+
+-D analyzer-optimize
+
+-cp reaper
+
+-D lua-vanilla
+# Verbose output for debugging
+-v
+
+# Dead code elimination (optional)
+-dce full
+
+# Output file
+# --cpp bin/cpp
+
+--lua bin/lua/main.lua
+
+# Generate source map for debugging (optional)
+# --lua-source-map
