@@ -140,7 +140,41 @@ extern class Reaper {
 
   public static function CreateTrackSend(tr: MediaTrack, desttrIn: MediaTrack): Int;
 
-  public static function FSurf_FlushUndo(force: Bool): Void;
+  public static function CSurf_FlushUndo(force: Bool): Void;
+
+  public static function CSurf_GetTouchState(trackid: Int, isPan: Bool): Int;
+
+  public static function CSurf_GoEnd(): Void;
+
+  public static function CSurf_GoStart(): Void;
+
+  public static function CSurf_NumTracks(mcpView: Bool): Int;
+
+  public static function CSurf_OnArrow(key: Int): Void;
+
+  public static function CSurf_OnFwd(seekPlay: Int): Void;
+
+  public static function CSurf_OnFXChange(track: MediaTrack, en: Int): Bool;
+
+  public static function CSurf_OnInputMonitorChange(track: MediaTrack, monitor: Int): Int;
+
+  public static function CSurf_OnInputMonitorChangeEx(track: MediaTrack, monitor: Int, allowGang: Bool): Int;
+
+  public static function CSurf_OnMuteChange(track: MediaTrack, mute: Int): Bool;
+
+  public static function CSurf_OnMuteChangeEx(track: MediaTrack, mute: Int, allowGang: Bool): Bool;
+
+  public static function CSurf_OnPanChange(track: MediaTrack, pan: Int, relative: Bool): Int;
+
+  public static function CSurf_OnPanChangeEx(track: MediaTrack, pan: Int, relative: Bool, allowGang: Bool): Int;
+
+  public static function CSurf_OnPause(): Void;
+
+  public static function CSurf_OnPlay(): Void;
+
+  public static function CSurf_OnPlayRateChange(playrate: Int): Void;
+
+  public static function CSurf_OnRecArmChange(track: MediaTrack, recarm: Int): Bool;
 
   public static function GetTrack(project: ReaProject, trackIdx: Int): MediaTrack;
 
