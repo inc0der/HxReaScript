@@ -183,4 +183,8 @@ extern class Reaper {
   public static function ShowConsoleMsg(msg: String): Void;
 
   public static function ShowMessageBox(msg: String, title: String, type: Int): Void;
+
+  public static function defer(fn: () -> Void): Void;
+
+  public static function atexit(fn: () -> Void): Void;
 }
