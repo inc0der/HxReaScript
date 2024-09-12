@@ -3,7 +3,7 @@ package reaper;
 import reaper.ReaperTypes;
 
 @:native("reaper")
-extern class Core {
+extern class Reaper {
   /**
    * Creates a new media item in a track and returns it
    * @param track 
