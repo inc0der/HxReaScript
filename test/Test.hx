@@ -2,7 +2,6 @@ package test;
 
 import reaper.Reaper;
 import reaper.Graphics;
-import reaper.DrawStrFlag;
 
 class Test {
 	static function main() {
