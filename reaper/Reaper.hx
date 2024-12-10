@@ -215,8 +215,9 @@ public static function countMediaItems(proj: ReaProject): Int;
 @:native("CountProjectMarkers")
 public static function countProjectMarkers(proj: ReaProject): Int;
 /**
- * DEPRECATED - Do not use in new code. count the number of selected items in
- * the project (proj=0 for active project)
+ * Discouraged, because GetSelectedMediaItem can be inefficient if media items
+ * are added, rearranged, or deleted in between calls. Instead see
+ * CountMediaItems, GetMediaItem, IsMediaItemSelected.
  */
 @:native("CountSelectedMediaItems")
 public static function countSelectedMediaItems(proj: ReaProject): Int;
@@ -1158,10 +1159,10 @@ B_MUTE : bool * : muted (item solo
 B_MUTE_ACTUAL : bool *
  * : muted (ignores solo). setting this value will not affect
  * C_MUTE_SOLO.
-C_LANEPLAYS : char * : in fixed lane tracks, 0=this item lane
+C_LANEPLAYS : char * : on fixed lane tracks, 0=this item lane
  * does not play, 1=this item lane plays exclusively, 2=this item lane plays and
  * other lanes also play, -1=this item is on a non-visible, non-playing lane on
- * a non-fixed-lane track (read-only)
+ * a formerly fixed-lane track (read-only)
 C_MUTE_SOLO : char * : solo override
  * (-1=soloed, 0=no override, 1=unsoloed). note that this API does not
  * automatically unsolo other items when soloing (nor clear the unsolos when
@@ -1710,8 +1711,9 @@ public static function getResourcePath(): String;
 @:native("GetSelectedEnvelope")
 public static function getSelectedEnvelope(proj: ReaProject): TrackEnvelope;
 /**
- * DEPRECATED - Do not use in new code. get a selected item by selected item
- * count (zero-based) (proj=0 for active project)
+ * Discouraged, because GetSelectedMediaItem can be inefficient if media items
+ * are added, rearranged, or deleted in between calls. Instead see
+ * CountMediaItems, GetMediaItem, IsMediaItemSelected.
  */
 @:native("GetSelectedMediaItem")
 public static function getSelectedMediaItem(proj: ReaProject, selitem: Int): MediaItem;
@@ -1920,26 +1922,28 @@ RENDER_DITHER : &1=dither, &2=noise shaping, &4=dither stems, &8=noise
  * shaping on stems
 RENDER_NORMALIZE: &1=enable, (&14==0)=LUFS-I, (&14==2)=RMS,
  * (&14==4)=peak, (&14==6)=true peak, (&14==8)=LUFS-M max, (&14==10)=LUFS-S max,
- * &32=normalize stems to common gain based on master, &64=enable brickwall
- * limit, &128=brickwall limit true peak, (&2304==256)=only normalize files that
- * are too loud, (&2304==2048)=only normalize files that are too quiet,
- * &512=apply fade-in, &1024=apply fade-out
-RENDER_NORMALIZE_TARGET: render
- * normalization target as amplitude, so 0.5 means -6.02dB, 0.25 means -12.04dB,
- * etc
-RENDER_BRICKWALL: render brickwall limit as amplitude, so 0.5 means
- * -6.02dB, 0.25 means -12.04dB, etc
-RENDER_FADEIN: render fade-in (0.001 means
- * 1 ms, requires RENDER_NORMALIZE&512)
-RENDER_FADEOUT: render fade-out (0.001
- * means 1 ms, requires RENDER_NORMALIZE&1024)
-RENDER_FADEINSHAPE: render
- * fade-in shape
+ * (&4128==32)=normalize stems to common gain based on master, &64=enable
+ * brickwall limit, &128=brickwall limit true peak, (&2304==256)=only normalize
+ * files that are too loud, (&2304==2048)=only normalize files that are too
+ * quiet, &512=apply fade-in, &1024=apply fade-out, (&4128==4096)=normalize to
+ * loudest file, (&4128==4128)=normalize as if one long file, &8192=adjust mono
+ * media additional -3dB
+RENDER_NORMALIZE_TARGET: render normalization target as
+ * amplitude, so 0.5 means -6.02dB, 0.25 means -12.04dB, etc
+RENDER_BRICKWALL:
+ * render brickwall limit as amplitude, so 0.5 means -6.02dB, 0.25 means
+ * -12.04dB, etc
+RENDER_FADEIN: render fade-in (0.001 means 1 ms, requires
+ * RENDER_NORMALIZE&512)
+RENDER_FADEOUT: render fade-out (0.001 means 1 ms,
+ * requires RENDER_NORMALIZE&1024)
+RENDER_FADEINSHAPE: render fade-in
+ * shape
 RENDER_FADEOUTSHAPE: render fade-out shape
-PROJECT_SRATE :
- * sample rate (ignored unless PROJECT_SRATE_USE set)
-PROJECT_SRATE_USE : set to
- * 1 if project sample rate is used
+PROJECT_SRATE : sample rate
+ * (ignored unless PROJECT_SRATE_USE set)
+PROJECT_SRATE_USE : set to 1 if
+ * project sample rate is used
  */
 @:native("GetSetProjectInfo")
 public static function getSetProjectInfo(project: ReaProject, desc: String, value: Float, isSet: Bool): Float;
@@ -2063,6 +2067,44 @@ Note:
  */
 @:native("GetSetTrackGroupMembership")
 public static function getSetTrackGroupMembership(tr: MediaTrack, groupName: String, setmask: Int, setvalue: Int): Int;
+/**
+ * Gets or modifies 32 bits (at offset, where 0 is the low 32 bits of the
+ * grouping) of the group membership for a track. Returns group state prior to
+ * call. if setmask has bits set, those bits in setvalue will be applied to
+ * group. Group can be one
+ * of:
+MEDIA_EDIT_LEAD
+MEDIA_EDIT_FOLLOW
+VOLUME_LEAD
+VOLUME_FOLLOW
+VOLUME_VCA_LEAD
+VOLUME_VCA_FOLLOW
+PAN_LEAD
+PAN_FOLLOW
+WIDTH_LEAD
+WIDTH_FOLLOW
+MUTE_LEAD
+MUTE_FOLLOW
+SOLO_LEAD
+SOLO_FOLLOW
+RECARM_LEAD
+RECARM_FOLLOW
+POLARITY_LEAD
+POLARITY_FOLLOW
+AUTOMODE_LEAD
+AUTOMODE_FOLLOW
+VOLUME_REVERSE
+PAN_REVERSE
+WIDTH_REVERSE
+NO_LEAD_WHEN_FOLLOW
+VOLUME_VCA_FOLLOW_ISPREFX
+Note:
+ * REAPER v6.11 and earlier used _MASTER and _SLAVE rather than _LEAD and
+ * _FOLLOW, which is deprecated but still supported (scripts that must support
+ * v6.11 and earlier can use the deprecated strings).
+ */
+@:native("GetSetTrackGroupMembershipEx")
+public static function getSetTrackGroupMembershipEx(tr: MediaTrack, groupName: String, offSet: Int, setmask: Int, setvalue: Int): Int;
 /**
  * Gets or modifies the group membership for a track. Returns group state prior
  * to call (each bit represents one of the high 32 group numbers). if setmask
@@ -2549,7 +2591,7 @@ public static function insertEnvelopePointEx(envelope: TrackEnvelope, autoitemId
  * reasamplomatic on a new track (add 1 to insert on last selected track),
  * &2048=insert into open reasamplomatic instance (add 512 to use high word as
  * absolute track index), &4096=move to source preferred position (BWF start
- * offset), &8192=reverse
+ * offset), &8192=reverse. &16384=apply ripple according to project setting
  */
 @:native("InsertMedia")
 public static function insertMedia(file: String, mode: Int): Int;
@@ -3531,10 +3573,10 @@ B_MUTE : bool * : muted (item solo
 B_MUTE_ACTUAL : bool *
  * : muted (ignores solo). setting this value will not affect
  * C_MUTE_SOLO.
-C_LANEPLAYS : char * : in fixed lane tracks, 0=this item lane
+C_LANEPLAYS : char * : on fixed lane tracks, 0=this item lane
  * does not play, 1=this item lane plays exclusively, 2=this item lane plays and
  * other lanes also play, -1=this item is on a non-visible, non-playing lane on
- * a non-fixed-lane track (read-only)
+ * a formerly fixed-lane track (read-only)
 C_MUTE_SOLO : char * : solo override
  * (-1=soloed, 0=no override, 1=unsoloed). note that this API does not
  * automatically unsolo other items when soloing (nor clear the unsolos when
@@ -4882,9 +4924,15 @@ public static function timeMapGetDividedBpmAtTime(time: Float): Float;
 public static function timeMapGetMeasureInfo(proj: ReaProject, measure: Int): Float;
 /**
  * Fills in a string representing the active metronome pattern. For example, in
- * a 7/8 measure divided 3+4, the pattern might be "1221222". The length of the
- * string is the time signature numerator, and the function returns the time
- * signature denominator.
+ * a 7/8 measure divided 3+4, the pattern might be "ABCABCD". For backwards
+ * compatibility, by default the function will return 1 for each primary beat
+ * and 2 for each non-primary beat, so "1221222" in this example, and does not
+ * support triplets. If buf is set to "EXTENDED", the function will return the
+ * full string as displayed in the pattern editor, including all beat types and
+ * triplet representations. Pass in "SET:string" with a correctly formed pattern
+ * string matching the current time signature numerator to set the click
+ * pattern. The time signature numerator can be deduced from the returned
+ * string, and the function returns the time signature denominator.
  */
 @:native("TimeMap_GetMetronomePattern")
 public static function timeMapGetMetronomePattern(proj: ReaProject, time: Float, pattern: String): Int;
@@ -6486,8 +6534,11 @@ public static function brSetItemEdges(item: MediaItem, startTime: Float, endTime
  * image resource, pass imageIn as "".
 imageFlags: &1=0: don't display image,
  * &1: center / tile, &3: stretch, &5: full height (REAPER 5.974+).
-To get image
- * resource, see BR_GetMediaItemImageResource.
+Can also be
+ * used to display existing text in empty items unstretched (pass imageIn = "",
+ * imageFlags = 0) or stretched (pass imageIn = "". imageFlags = 3).
+To get
+ * image resource, see BR_GetMediaItemImageResource.
  */
 @:native("BR_SetMediaItemImageResource")
 public static function brSetMediaItemImageResource(item: MediaItem, imageIn: String, imageFlags: Int): Void;
@@ -6548,7 +6599,8 @@ Position will hold mouse cursor
 @:native("BR_TrackAtMouseCursor")
 public static function brTrackAtMouseCursor(): MediaTrack;
 /**
- * [BR] Get the exact name (like effect.dll, effect.vst3, etc...) of an FX.
+ * [BR] Deprecated, see TrackFX_GetNamedConfigParm/'fx_ident' (v6.37+). Get the
+ * exact name (like effect.dll, effect.vst3, etc...) of an FX.
  */
 @:native("BR_TrackFX_GetFXModuleName")
 public static function brTrackFxGetFxModuleName(track: MediaTrack, fX: Int): Bool;
@@ -6650,7 +6702,7 @@ public static function brWin32GetMonitorRectFromRect(workingAreaOnlY: Bool, left
 public static function brWin32GetParent(hWnd: Identifier): Identifier;
 /**
  * [BR] Equivalent to win32 API GetPrivateProfileString(). For example, you can
- * use this to get values from REAPER.ini
+ * use this to get values from REAPER.ini.
  */
 @:native("BR_Win32_GetPrivateProfileString")
 public static function brWin32GetPrivateProfileString(sectionName: String, keYName: String, defaultString: String, filePatH: String): Int;
@@ -6798,10 +6850,25 @@ public static function brWin32StringToHwnd(string: String): Identifier;
 public static function brWin32WindowFromPoint(x: Int, y: Int): Identifier;
 /**
  * [BR] Equivalent to win32 API WritePrivateProfileString(). For example, you
- * can use this to write to REAPER.ini
+ * can use this to write to REAPER.ini. You can pass an empty string as value to
+ * delete a key.
  */
 @:native("BR_Win32_WritePrivateProfileString")
 public static function brWin32WritePrivateProfileString(sectionName: String, keYName: String, value: String, filePatH: String): Bool;
+/**
+ * Create a new preview object. Does not take ownership of the source (don't
+ * forget to destroy it unless it came from a take!). See CF_Preview_Play and
+ * the others CF_Preview_* functions.
+The preview object is automatically
+ * destroyed at the end of a defer cycle if at least one of these conditions are
+ * met:
+- playback finished
+- playback was not started using CF_Preview_Play
+-
+ * the output track no longer exists
+ */
+@:native("CF_CreatePreview")
+public static function cfCreatePreview(source: PcmSource): CfPreview;
 /**
  * Enumerate the source's media cues. Returns the next index or 0 when finished.
  */
@@ -6814,10 +6881,11 @@ public static function cfEnumMediaSourceCues(src: PcmSource, indeX: Int): Int;
 @:native("CF_EnumSelectedFX")
 public static function cfEnumSelectedFx(hWnd: FxChain, indeX: Int): Int;
 /**
- * Wrapper for the unexposed kbd_enumerateActions API function.
-Main=0, Main
- * (alt recording)=100, MIDI Editor=32060, MIDI Event List Editor=32061, MIDI
- * Inline Editor=32062, Media Explorer=32063
+ * Deprecated, see kbd_enumerateActions (v6.71+). Wrapper for the unexposed
+ * kbd_enumerateActions API function.
+Main=0, Main (alt recording)=100, MIDI
+ * Editor=32060, MIDI Event List Editor=32061, MIDI Inline Editor=32062, Media
+ * Explorer=32063
  */
 @:native("CF_EnumerateActions")
 public static function cfEnumerateActions(section: Int, indeX: Int): Int;
@@ -6838,11 +6906,18 @@ public static function cfGetClipboard(): String;
 @:native("CF_GetClipboardBig")
 public static function cfGetClipboardBig(output: WdlFastString): String;
 /**
- * Wrapper for the unexposed kbd_getTextFromCmd API function. See
- * CF_EnumerateActions for common section IDs.
+ * Deprecated, see kbd_getTextFromCmd (v6.71+). Wrapper for the unexposed
+ * kbd_getTextFromCmd API function. See CF_EnumerateActions for common section
+ * IDs.
  */
 @:native("CF_GetCommandText")
 public static function cfGetCommandText(section: Int, command: Int): String;
+/**
+ * Get one of 16 SWS custom colors (0xBBGGRR on Windows, 0xRRGGBB everyhwere
+ * else). Index is zero-based.
+ */
+@:native("CF_GetCustomColor")
+public static function cfGetCustomColor(indeX: Int): Int;
 /**
  * Return a handle to the currently focused FX chain window.
  */
@@ -6853,6 +6928,12 @@ public static function cfGetFocusedFxChain(): FxChain;
  */
 @:native("CF_GetMediaSourceBitDepth")
 public static function cfGetMediaSourceBitDepth(src: PcmSource): Int;
+/**
+ * Returns the bit rate for WAVE (wav, aif) and streaming/variable formats (mp3,
+ * ogg, opus). REAPER v6.19 or later is required for non-WAVE formats.
+ */
+@:native("CF_GetMediaSourceBitRate")
+public static function cfGetMediaSourceBitRate(src: PcmSource): Float;
 /**
  * Get the value of the given metadata field (eg. DESC, ORIG, ORIGREF, DATE,
  * TIME, UMI, CODINGHISTORY for BWF).
@@ -6887,10 +6968,108 @@ public static function cfGetTakeFxChain(take: MediaItemTake): FxChain;
 @:native("CF_GetTrackFXChain")
 public static function cfGetTrackFxChain(track: MediaTrack): FxChain;
 /**
+ * Return a handle to the given track FX chain window. Set wantInputChain to get
+ * the track's input/monitoring FX chain.
+ */
+@:native("CF_GetTrackFXChainEx")
+public static function cfGetTrackFxChainEx(project: ReaProject, track: MediaTrack, wantInputCHain: Bool): FxChain;
+/**
  * Select the given file in explorer/finder.
  */
 @:native("CF_LocateInExplorer")
 public static function cfLocateInExplorer(file: String): Bool;
+/**
+ * Apply Unicode normalization to the provided UTF-8 string.
+Mode values:
+- Bit
+ * 0 (composition mode):
+  * 0 = decomposition only
+  * 1 = decomposition +
+ * canonical composition
+- Bit 1 (decomposition mode):
+  * 0 = canonical
+ * decomposition
+  * 1 = compatibility decomposition
+Warning: this function is
+ * no-op on Windows XP (the input string is returned as-is).
+ */
+@:native("CF_NormalizeUTF8")
+public static function cfNormalizeUtf8(input: String, mode: Int): String;
+/**
+ * Give a section source created using PCM_Source_CreateFromType("SECTION").
+ * Offset and length are ignored if 0. Negative length to subtract from the
+ * total length of the source.
+ */
+@:native("CF_PCM_Source_SetSectionInfo")
+public static function cfPcmSourceSetSectionInfo(section: PcmSource, source: PcmSource, offSet: Float, lengtH: Float, reverse: Bool, ?fadeIn: Float): Bool;
+/** No description available */
+@:native("CF_Preview_GetOutputTrack")
+public static function cfPreviewGetOutputTrack(previeW: CfPreview): MediaTrack;
+/**
+ * Return the maximum sample value played since the last read. Refresh speed
+ * depends on buffer size.
+ */
+@:native("CF_Preview_GetPeak")
+public static function cfPreviewGetPeak(previeW: CfPreview, cHannel: Int): Bool;
+/**
+ * Supported attributes:
+B_LOOP         seek to the beginning when reaching the
+ * end of the source
+B_PPITCH       preserve pitch when changing playback
+ * rate
+D_FADEINLEN    length in seconds of playback fade in
+D_FADEOUTLEN  
+ * length in seconds of playback fade out
+D_LENGTH       (read only) length of
+ * the source * playback rate
+D_MEASUREALIGN >0 = wait until the next bar before
+ * starting playback (note: this causes playback to silently continue when
+ * project is paused and previewing through a track)
+D_PAN          playback
+ * pan
+D_PITCH        pitch adjustment in semitones
+D_PLAYRATE     playback rate
+ * (0.01..100)
+D_POSITION     current playback position
+D_VOLUME       playback
+ * volume
+I_OUTCHAN      first hardware output channel (&1024=mono, reads -1
+ * when playing through a track, see CF_Preview_SetOutputTrack)
+I_PITCHMODE   
+ * highest 16 bits=pitch shift mode (see EnumPitchShiftModes), lower 16
+ * bits=pitch shift submode (see EnumPitchShiftSubModes)
+ */
+@:native("CF_Preview_GetValue")
+public static function cfPreviewGetValue(previeW: CfPreview, name: String): Bool;
+/**
+ * Start playback of the configured preview object.
+ */
+@:native("CF_Preview_Play")
+public static function cfPreviewPlay(previeW: CfPreview): Bool;
+/** No description available */
+@:native("CF_Preview_SetOutputTrack")
+public static function cfPreviewSetOutputTrack(previeW: CfPreview, project: ReaProject, track: MediaTrack): Bool;
+/**
+ * See CF_Preview_GetValue.
+ */
+@:native("CF_Preview_SetValue")
+public static function cfPreviewSetValue(previeW: CfPreview, name: String, neWValue: Float): Bool;
+/**
+ * Stop and destroy a preview object.
+ */
+@:native("CF_Preview_Stop")
+public static function cfPreviewStop(previeW: CfPreview): Bool;
+/**
+ * Stop and destroy all currently active preview objects.
+ */
+@:native("CF_Preview_StopAll")
+public static function cfPreviewStopAll(): Void;
+/**
+ * Set which take effect is active in the take's FX chain. The FX chain window
+ * does not have to be open.
+ */
+@:native("CF_SelectTakeFX")
+public static function cfSelectTakeFx(take: MediaItemTake, indeX: Int): Bool;
 /**
  * Set which track effect is active in the track's FX chain. The FX chain window
  * does not have to be open.
@@ -6898,10 +7077,28 @@ public static function cfLocateInExplorer(file: String): Bool;
 @:native("CF_SelectTrackFX")
 public static function cfSelectTrackFx(track: MediaTrack, indeX: Int): Bool;
 /**
+ * Run in the specified window the action command ID associated with the
+ * shortcut key in the given section. See CF_EnumerateActions for common section
+ * IDs.
+	Keys are Windows virtual key codes. &0x8000 for an extended key (eg.
+ * Numpad Enter = VK_RETURN & 0x8000).
+	Modifier values: nil = read from
+ * keyboard, 0 = no modifier, &4 = Control (Cmd on macOS), &8 = Shift, &16 =
+ * Alt, &32 = Super
+ */
+@:native("CF_SendActionShortcut")
+public static function cfSendActionShortcut(hWnd: Identifier, section: Int, keY: Int, ?modifiersIn: Int): Bool;
+/**
  * Write the given string into the system clipboard.
  */
 @:native("CF_SetClipboard")
 public static function cfSetClipboard(str: String): Void;
+/**
+ * Set one of 16 SWS custom colors (0xBBGGRR on Windows, 0xRRGGBB everyhwere
+ * else). Index is zero-based.
+ */
+@:native("CF_SetCustomColor")
+public static function cfSetCustomColor(indeX: Int, color: Int): Void;
 /**
  * Set the online/offline status of the given source (closes files when
  * set=false).
@@ -6950,6 +7147,12 @@ public static function fngGetMidiNoteIntProperty(mIdiNote: RprMidiNote, propertY
  */
 @:native("FNG_SetMidiNoteIntProperty")
 public static function fngSetMidiNoteIntProperty(mIdiNote: RprMidiNote, propertY: String, value: Int): Void;
+/** No description available */
+@:native("JB_GetSWSExtraProjectNotes")
+public static function jbGetSwsExtraProjectNotes(project: ReaProject): String;
+/** No description available */
+@:native("JB_SetSWSExtraProjectNotes")
+public static function jbSetSwsExtraProjectNotes(project: ReaProject, str: String): Void;
 /**
  * Section:
 0 = Main, 100 = Main (alt recording), 32060 = MIDI Editor, 32061 =
@@ -8692,7 +8895,7 @@ public static function nfAnalyzeMediaItemPeakAndRms(item: MediaItem, windowSize:
 /**
  * Full loudness analysis. retval: returns true on successful analysis, false on
  * MIDI take or when analysis failed for some reason. analyzeTruePeak=true: Also
- * do true peak analysis. Returns true peak value and true peak position
+ * do true peak analysis. Returns true peak value in dBTP and true peak position
  * (relative to item position). Considerably slower than without true peak
  * analysis (since it uses oversampling). Note: Short term uses a time window of
  * 3 sec. for calculation. So for items shorter than this shortTermMaxOut can't
@@ -8703,8 +8906,7 @@ public static function nfAnalyzeTakeLoudness(take: MediaItemTake, analYzeTruePea
 /**
  * Same as NF_AnalyzeTakeLoudness but additionally returns shortTermMaxPos and
  * momentaryMaxPos (in absolute project time). Note: shortTermMaxPos and
- * momentaryMaxPos actaully indicate the beginning of time , (3 sec. and 0.4
- * sec. resp.).
+ * momentaryMaxPos indicate the beginning of time , (3 sec. and 0.4 sec. resp.).
  */
 @:native("NF_AnalyzeTakeLoudness2")
 public static function nfAnalyzeTakeLoudness2(take: MediaItemTake, analYzeTruePeak: Bool): Bool;
@@ -8716,17 +8918,58 @@ public static function nfAnalyzeTakeLoudness2(take: MediaItemTake, analYzeTruePe
 @:native("NF_AnalyzeTakeLoudness_IntegratedOnly")
 public static function nfAnalyzeTakeLoudnessIntegratedOnly(take: MediaItemTake): Bool;
 /**
- * Returns the average overall (non-windowed) RMS level of active channels of an
- * audio item active take, post item gain, post take volume envelope, post-fade,
- * pre fader, pre item FX. 
- Returns -150.0 if MIDI take or empty item.
+ * Returns true on success.
+ */
+@:native("NF_Base64_Decode")
+public static function nfBase64Decode(base64Str: String): Bool;
+/**
+ * Input string may contain null bytes in REAPER 6.44 or newer. Note: Doesn't
+ * allow padding in the middle (e.g. concatenated encoded strings), doesn't
+ * allow newlines.
+ */
+@:native("NF_Base64_Encode")
+public static function nfBase64Encode(str: String, usePadding: Bool): String;
+/**
+ * Returns true if global startup action was cleared successfully.
+ */
+@:native("NF_ClearGlobalStartupAction")
+public static function nfClearGlobalStartupAction(): Bool;
+/**
+ * Returns true if project startup action was cleared successfully.
+ */
+@:native("NF_ClearProjectStartupAction")
+public static function nfClearProjectStartupAction(): Bool;
+/**
+ * Returns true if project track selection action was cleared successfully.
+ */
+@:native("NF_ClearProjectTrackSelectionAction")
+public static function nfClearProjectTrackSelectionAction(): Bool;
+/**
+ * Deletes a take from an item. takeIdx is zero-based. Returns true on success.
+ */
+@:native("NF_DeleteTakeFromItem")
+public static function nfDeleteTakeFromItem(item: MediaItem, takeIdX: Int): Bool;
+/**
+ * Gets action description and command ID number (for native actions) or named
+ * command IDs / identifier strings (for extension actions /ReaScripts) if
+ * global startup action is set, otherwise empty string. Returns false on
+ * failure.
+ */
+@:native("NF_GetGlobalStartupAction")
+public static function nfGetGlobalStartupAction(): Bool;
+/**
+ * Returns the average overall (non-windowed) dB RMS level of active channels of
+ * an audio item active take, post item gain, post take volume envelope,
+ * post-fade, pre fader, pre item FX. 
+ Returns -150.0 if MIDI take or empty
+ * item.
  */
 @:native("NF_GetMediaItemAverageRMS")
 public static function nfGetMediaItemAverageRms(item: MediaItem): Float;
 /**
- * Returns the greatest max. peak value of all active channels of an audio item
- * active take, post item gain, post take volume envelope, post-fade, pre fader,
- * pre item FX. 
+ * Returns the greatest max. peak value in dBFS of all active channels of an
+ * audio item active take, post item gain, post take volume envelope, post-fade,
+ * pre fader, pre item FX. 
  Returns -150.0 if MIDI take or empty item.
  */
 @:native("NF_GetMediaItemMaxPeak")
@@ -8738,7 +8981,7 @@ public static function nfGetMediaItemMaxPeak(item: MediaItem): Float;
 @:native("NF_GetMediaItemMaxPeakAndMaxPeakPos")
 public static function nfGetMediaItemMaxPeakAndMaxPeakPos(item: MediaItem): Float;
 /**
- * Returns the greatest overall (non-windowed) RMS peak level of all active
+ * Returns the greatest overall (non-windowed) dB RMS peak level of all active
  * channels of an audio item active take, post item gain, post take volume
  * envelope, post-fade, pre fader, pre item FX. 
  Returns -150.0 if MIDI take or
@@ -8747,7 +8990,7 @@ public static function nfGetMediaItemMaxPeakAndMaxPeakPos(item: MediaItem): Floa
 @:native("NF_GetMediaItemPeakRMS_NonWindowed")
 public static function nfGetMediaItemPeakRmsNonWindowed(item: MediaItem): Float;
 /**
- * Returns the average RMS peak level of all active channels of an audio item
+ * Returns the average dB RMS peak level of all active channels of an audio item
  * active take, post item gain, post take volume envelope, post-fade, pre fader,
  * pre item FX. 
  Obeys 'Window size for peak RMS' setting in 'SWS: Set RMS
@@ -8756,6 +8999,22 @@ public static function nfGetMediaItemPeakRmsNonWindowed(item: MediaItem): Float;
  */
 @:native("NF_GetMediaItemPeakRMS_Windowed")
 public static function nfGetMediaItemPeakRmsWindowed(item: MediaItem): Float;
+/**
+ * Gets action description and command ID number (for native actions) or named
+ * command IDs / identifier strings (for extension actions /ReaScripts) if
+ * project startup action is set, otherwise empty string. Returns false on
+ * failure.
+ */
+@:native("NF_GetProjectStartupAction")
+public static function nfGetProjectStartupAction(): Bool;
+/**
+ * Gets action description and command ID number (for native actions) or named
+ * command IDs / identifier strings (for extension actions /ReaScripts) if
+ * project track selection action is set, otherwise empty string. Returns false
+ * on failure.
+ */
+@:native("NF_GetProjectTrackSelectionAction")
+public static function nfGetProjectTrackSelectionAction(): Bool;
 /**
  * Returns SWS/S&M marker/region subtitle. markerRegionIdx: Refers to index that
  * can be passed to EnumProjectMarkers (not displayed marker/region index).
@@ -8772,6 +9031,59 @@ public static function nfGetSwsTrackNotes(track: MediaTrack): String;
  */
 @:native("NF_GetSWS_RMSoptions")
 public static function nfGetSwsRmSoptions(): Float;
+/** No description available */
+@:native("NF_GetThemeDefaultTCPHeights")
+public static function nfGetThemeDefaultTcpHeights(): Int;
+/**
+ * Returns the bitrate of an audio file in kb/s if available (0 otherwise). For
+ * supported filetypes see TagLib::AudioProperties::bitrate.
+ */
+@:native("NF_ReadAudioFileBitrate")
+public static function nfReadAudioFileBitrate(fn: String): Int;
+/**
+ * 100 means scroll one page. Negative values scroll left.
+ */
+@:native("NF_ScrollHorizontallyByPercentage")
+public static function nfScrollHorizontallyByPercentage(amount: Int): Void;
+/**
+ * Returns true if global startup action was set successfully (i.e. valid action
+ * ID). Note: For SWS / S&M actions and macros / scripts, you must use
+ * identifier strings (e.g. "_SWS_ABOUT", "_f506bc780a0ab34b8fdedb67ed5d3649"),
+ * not command IDs (e.g. "47145").
+Tip: to copy such identifiers, right-click
+ * the action in the Actions window > Copy selected action cmdID / identifier
+ * string.
+NOnly works for actions / scripts from Main action section.
+ */
+@:native("NF_SetGlobalStartupAction")
+public static function nfSetGlobalStartupAction(str: String): Bool;
+/**
+ * Returns true if project startup action was set successfully (i.e. valid
+ * action ID). Note: For SWS / S&M actions and macros / scripts, you must use
+ * identifier strings (e.g. "_SWS_ABOUT", "_f506bc780a0ab34b8fdedb67ed5d3649"),
+ * not command IDs (e.g. "47145").
+Tip: to copy such identifiers, right-click
+ * the action in the Actions window > Copy selected action cmdID / identifier
+ * string.
+Only works for actions / scripts from Main action section. Project
+ * must be saved after setting project startup action to be persistent.
+ */
+@:native("NF_SetProjectStartupAction")
+public static function nfSetProjectStartupAction(str: String): Bool;
+/**
+ * Returns true if project track selection action was set successfully (i.e.
+ * valid action ID). Note: For SWS / S&M actions and macros / scripts, you must
+ * use identifier strings (e.g. "_SWS_ABOUT",
+ * "_f506bc780a0ab34b8fdedb67ed5d3649"), not command IDs (e.g. "47145").
+Tip: to
+ * copy such identifiers, right-click the action in the Actions window > Copy
+ * selected action cmdID / identifier string.
+Only works for actions / scripts
+ * from Main action section. Project must be saved after setting project track
+ * selection action to be persistent.
+ */
+@:native("NF_SetProjectTrackSelectionAction")
+public static function nfSetProjectTrackSelectionAction(str: String): Bool;
 /**
  * Set SWS/S&M marker/region subtitle. markerRegionIdx: Refers to index that can
  * be passed to EnumProjectMarkers (not displayed marker/region index). Returns
@@ -8791,7 +9103,8 @@ public static function nfSetSwsTrackNotes(track: MediaTrack, str: String): Void;
 @:native("NF_SetSWS_RMSoptions")
 public static function nfSetSwsRmSoptions(targetLevel: Float, windowSize: Float): Bool;
 /**
- * See BR_TrackFX_GetFXModuleName. fx: counted consecutively across all takes
+ * Deprecated, see TakeFX_GetNamedConfigParm/'fx_ident' (v6.37+). See
+ * BR_TrackFX_GetFXModuleName. fx: counted consecutively across all takes
  * (zero-based).
  */
 @:native("NF_TakeFX_GetFXModuleName")
@@ -8804,7 +9117,10 @@ public static function nfTakeFxGetFxModuleName(item: MediaItem, fX: Int): Bool;
 @:native("NF_UpdateSWSMarkerRegionSubWindow")
 public static function nfUpdateSwsMarkerRegionSubWindow(): Void;
 /**
- * Equivalent to win32 API GetSystemMetrics().
+ * Equivalent to win32 API GetSystemMetrics(). Note: Only SM_C[XY]SCREEN,
+ * SM_C[XY][HV]SCROLL and SM_CYMENU are currently supported on macOS and Linux
+ * as of REAPER 6.68. Check the SWELL source code for up-to-date support
+ * information (swell-wnd.mm, swell-wnd-generic.cpp).
  */
 @:native("NF_Win32_GetSystemMetrics")
 public static function nfWin32GetSystemMetrics(nIndeX: Int): Int;
@@ -8923,6 +9239,11 @@ public static function snmDeleteFastString(str: WdlFastString): Void;
 @:native("SNM_GetDoubleConfigVar")
 public static function snmGetDoubleConfigVar(varName: String, errvalue: Float): Float;
 /**
+ * [S&M] See SNM_GetDoubleConfigVar.
+ */
+@:native("SNM_GetDoubleConfigVarEx")
+public static function snmGetDoubleConfigVarEx(proj: ReaProject, varName: String, errvalue: Float): Float;
+/**
  * [S&M] Gets the "fast string" content.
  */
 @:native("SNM_GetFastString")
@@ -8939,12 +9260,22 @@ public static function snmGetFastStringLength(str: WdlFastString): Int;
 @:native("SNM_GetIntConfigVar")
 public static function snmGetIntConfigVar(varName: String, errvalue: Int): Int;
 /**
+ * [S&M] See SNM_GetIntConfigVar.
+ */
+@:native("SNM_GetIntConfigVarEx")
+public static function snmGetIntConfigVarEx(proj: ReaProject, varName: String, errvalue: Int): Int;
+/**
  * [S&M] Reads a 64-bit integer preference split in two 32-bit integers (look in
  * project prefs first, then in general prefs). Returns false if failed (e.g.
  * varname not found).
  */
 @:native("SNM_GetLongConfigVar")
 public static function snmGetLongConfigVar(varName: String): Bool;
+/**
+ * [S&M] See SNM_GetLongConfigVar.
+ */
+@:native("SNM_GetLongConfigVarEx")
+public static function snmGetLongConfigVarEx(proj: ReaProject, varName: String): Bool;
 /**
  * [S&M] Gets a take by GUID as string. The GUID must be enclosed in braces {}.
  * To get take GUID as string, see BR_GetMediaItemTakeGUID
@@ -8992,11 +9323,11 @@ public static function snmGetSetSourceState2(take: MediaItemTake, state: WdlFast
 @:native("SNM_GetSourceType")
 public static function snmGetSourceType(take: MediaItemTake, tYpe: WdlFastString): Bool;
 /**
- * [S&M] Deprecated, see TakeFX_/TrackFX_ CopyToTrack/Take, TrackFX/TakeFX
- * _Delete (v5.95pre2+). Move or removes a track FX. Returns true if tr has been
- * updated.
-fxId: fx index in chain or -1 for the selected fx. what: 0 to
- * remove, -1 to move fx up in chain, 1 to move fx down in chain.
+ * [S&M] Deprecated, see TrackFX_{CopyToTrack,Delete} (v5.95+). Move or removes
+ * a track FX. Returns true if tr has been updated.
+fxId: fx index in chain or
+ * -1 for the selected fx. what: 0 to remove, -1 to move fx up in chain, 1 to
+ * move fx down in chain.
  */
 @:native("SNM_MoveOrRemoveTrackFX")
 public static function snmMoveOrRemoveTrackFx(tr: MediaTrack, fXId: Int, wHat: Int): Bool;
@@ -9032,6 +9363,11 @@ public static function snmSelectResourceBookmark(name: String): Int;
 @:native("SNM_SetDoubleConfigVar")
 public static function snmSetDoubleConfigVar(varName: String, neWvalue: Float): Bool;
 /**
+ * [S&M] See SNM_SetDoubleConfigVar.
+ */
+@:native("SNM_SetDoubleConfigVarEx")
+public static function snmSetDoubleConfigVarEx(proj: ReaProject, varName: String, neWvalue: Float): Bool;
+/**
  * [S&M] Sets the "fast string" content. Returns str for facility.
  */
 @:native("SNM_SetFastString")
@@ -9044,6 +9380,11 @@ public static function snmSetFastString(str: WdlFastString, neWstr: String): Wdl
 @:native("SNM_SetIntConfigVar")
 public static function snmSetIntConfigVar(varName: String, neWvalue: Int): Bool;
 /**
+ * [S&M] See SNM_SetIntConfigVar.
+ */
+@:native("SNM_SetIntConfigVarEx")
+public static function snmSetIntConfigVarEx(proj: ReaProject, varName: String, neWvalue: Int): Bool;
+/**
  * [S&M] Sets a 64-bit integer preference from two 32-bit integers (look in
  * project prefs first, then in general prefs). Returns false if failed (e.g.
  * varname not found).
@@ -9051,11 +9392,22 @@ public static function snmSetIntConfigVar(varName: String, neWvalue: Int): Bool;
 @:native("SNM_SetLongConfigVar")
 public static function snmSetLongConfigVar(varName: String, neWHigHValue: Int, neWLoWValue: Int): Bool;
 /**
+ * [S&M] SNM_SetLongConfigVar.
+ */
+@:native("SNM_SetLongConfigVarEx")
+public static function snmSetLongConfigVarEx(proj: ReaProject, varName: String, neWHigHValue: Int, neWLoWValue: Int): Bool;
+/**
  * [S&M] Deprecated, see SetProjectMarker4 -- Same function as
  * SetProjectMarker3() except it can set empty names "".
  */
 @:native("SNM_SetProjectMarker")
 public static function snmSetProjectMarker(proj: ReaProject, num: Int, isrgn: Bool, pos: Float, rgnend: Float, name: String, color: Int): Bool;
+/**
+ * [S&M] Sets a string preference (general prefs only). Returns false if failed
+ * (e.g. varname not found or value too long). See get_config_var_string.
+ */
+@:native("SNM_SetStringConfigVar")
+public static function snmSetStringConfigVar(varName: String, neWvalue: String): Bool;
 /**
  * [S&M] Tags a media file thanks to TagLib. Supported tags: "artist", "album",
  * "genre", "comment", "title", "track" (track number) or "year". Use an empty

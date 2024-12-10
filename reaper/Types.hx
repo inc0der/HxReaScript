@@ -16,6 +16,7 @@ extern class ReaperArray {}
 extern class JoystickDevice {}
 extern class Identifier {}
 extern class BrEnvelope {}
+extern class CfPreview {}
 extern class FxChain {}
 extern class WdlFastString {}
 extern class RprMidiTake {}

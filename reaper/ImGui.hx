@@ -1140,6 +1140,17 @@ If 'family_or_file' specifies a path to a font
 @:native("ImGui_CreateFont")
 public static function imGuiCreateFont(familYOrFile: String, size: Int, ?flagsIn: Int): ImGuiFont;
 /**
+ * Requires REAPER v6.44 or newer for EEL and Lua. Use CreateFont or
+explicitely
+ * specify data_sz to support older versions.
+- The first byte of 'flags' is
+ * used as the font index within the file
+- The font styles in 'flags' are
+ * simulated by the font renderer
+ */
+@:native("ImGui_CreateFontFromMem")
+public static function imGuiCreateFontFromMem(data: String, size: Int, ?flagsIn: Int): ImGuiFont;
+/**
  * Compile an EEL program.
 Standard EEL
  * [math](https://www.reaper.fm/sdk/js/basiccode.php#js_basicfunc)
@@ -1169,8 +1180,7 @@ public static function imGuiCreateImageFromLice(bitmap: LiceIBitmap, ?flagsIn: I
 /**
  * Requires REAPER v6.44 or newer for EEL and Lua. Load from a file
  * using
-CreateImage or explicitely specify data_sz if supporting older
- * versions.
+CreateImage or explicitely specify data_sz to support older versions.
  */
 @:native("ImGui_CreateImageFromMem")
 public static function imGuiCreateImageFromMem(data: String, ?flagsIn: Int): ImGuiImage;
@@ -2596,11 +2606,11 @@ public static function imGuiIsItemToggledOpen(ctX: ImGuiContext): Bool;
 @:native("ImGui_IsItemVisible")
 public static function imGuiIsItemVisible(ctX: ImGuiContext): Bool;
 /**
- * Was key chord (mods + key) pressed? You can pass e.g. `Mod_Shortcut |
- * Key_S`
-as a key chord. // This doesn't do any routing or focus check,
-please
- * consider using the Shortcut() function instead.
+ * Was key chord (mods + key) pressed? You can pass e.g. `Mod_Ctrl | Key_S`
+as a
+ * key chord. This doesn't do any routing or focus check, consider using
+ * the
+Shortcut function instead.
  */
 @:native("ImGui_IsKeyChordPressed")
 public static function imGuiIsKeyChordPressed(ctX: ImGuiContext, keYCHord: Int): Bool;
