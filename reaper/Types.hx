@@ -1,10 +1,5 @@
 package reaper;
 
-typedef Rect = {
-  Int width = 0
-  Int height = 0
-}
-
 extern class MediaTrack {}
 extern class MediaItem {}
 extern class ReaProject {}
@@ -40,6 +35,7 @@ extern class ImGuiImageSet {}
 extern class ImGuiListClipper {}
 extern class ImGuiTextFilter {}
 extern class ImGuiViewport {}
+extern class ImGuiBitmap {}
 extern class Unsupported {}
 extern class PackageEntry {}
 extern class AudioWriter {}

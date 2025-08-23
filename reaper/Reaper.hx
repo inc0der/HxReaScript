@@ -304,6 +304,16 @@ public static function createTrackAudioAccessor(track: MediaTrack): AudioAccesso
 @:native("CreateTrackSend")
 public static function createTrackSend(tr: MediaTrack, desttrIn: MediaTrack): Int;
 /**
+ * Run a command from the Crossfade Editor section of the actions list.
+ */
+@:native("CrossfadeEditor_OnCommand")
+public static function crossfadeEditorOnCommand(command: Int): Void;
+/**
+ * Show or hide the Crossfade Editor window
+ */
+@:native("CrossfadeEditor_Show")
+public static function crossfadeEditorShow(sHoW: Bool): Void;
+/**
  * call this to force flushing of the undo states after using CSurf_On*Change()
  */
 @:native("CSurf_FlushUndo")
@@ -622,7 +632,8 @@ public static function enumerateFiles(patH: String, fileindeX: Int): String;
 public static function enumerateSubdirectories(patH: String, subDirindeX: Int): String;
 /**
  * Enumerates installed FX. Returns true if successful, sets nameOut and
- * identOut to name and ident of FX at index.
+ * identOut to name and ident of FX at index. In REAPER 7.42+, use index=-1 to
+ * re-read JSFX info.
  */
 @:native("EnumInstalledFX")
 public static function enumInstalledFx(indeX: Int): Bool;
@@ -1306,6 +1317,68 @@ I_TAKEFX_NCH : int * : number of internal audio channels for
 I_CUSTOMCOLOR : int * : custom color, OS dependent color|0x1000000
  * (i.e. ColorToNative(r,g,b)|0x1000000). If you do not |0x1000000, then it will
  * not be used, but will store the color
+IP_SPECEDIT:CNT : int : spectral edit
+ * count (read-only)
+IP_SPECEDIT:DELETE:x : int : read or write this key to
+ * remove the spectral edit specified
+IP_SPECEDIT:ADD : int : read or write this
+ * key to add a new spectral edit (returns index)
+IP_SPECEDIT:SORT : int : read
+ * or write this key to re-sort spectral edits (be sure to do this following a
+ * position change or insert of new edit)
+I_SPECEDIT:FFT_SIZE : int * : FFT size
+ * used by spectral edits for this take
+D_SPECEDIT:x:POSITION : double * :
+ * position of spectral edit start (changing this requires a resort of spectral
+ * edits)
+D_SPECEDIT:x:LENGTH : double * : length of spectral
+ * edit
+F_SPECEDIT:x:GAIN : float * : gain of spectral edit
+F_SPECEDIT:x:FADE_IN
+ * : float * : fade-in size 0..1
+F_SPECEDIT:x:FADE_OUT : float * : fade-out size
+ * 0..1
+F_SPECEDIT:x:FADE_LOW : float * : fade-lf size 0..1
+F_SPECEDIT:x:FADE_HI
+ * : float * : fade-hf size 0..1
+I_SPECEDIT:x:CHAN : int * : channel index, -1
+ * for omni
+I_SPECEDIT:x:FLAGS : int * : flags, &1=bypassed,
+ * &2=solo
+F_SPECEDIT:x:GATE_THRESH : float * : gate
+ * threshold
+F_SPECEDIT:x:GATE_FLOOR : float * : gate
+ * floor
+F_SPECEDIT:x:COMP_THRESH : float * : comp
+ * threshold
+F_SPECEDIT:x:COMP_RATIO : float * : comp
+ * ratio
+B_SPECEDIT:x:SELECTED : bool * : selection
+ * state
+I_SPECEDIT:x:TOPFREQ_CNT : int * : (read-only) number of top
+ * frequency-points
+I_SPECEDIT:x:TOPFREQ_ADD:pos:val : int * : reading or
+ * writing will insert top frequency-point with position/value pair, returns
+ * index
+I_SPECEDIT:x:TOPFREQ_DEL:y : int * : reading or writing will delete top
+ * frequency-point y. there will always be at least one
+ * point.
+F_SPECEDIT:x:TOPFREQ_POS:y : float * : (read-only) get position of top
+ * frequency-point y
+F_SPECEDIT:x:TOPFREQ_FREQ:y : float * : (read-only) get
+ * frequency of top frequency-point y
+I_SPECEDIT:x:BOTFREQ_CNT : int * : number
+ * of bottom frequency-points
+I_SPECEDIT:x:BOTFREQ_ADD:pos:val : int * : reading
+ * or writing will insert bottom frequency-point with position/value pair,
+ * returns index
+I_SPECEDIT:x:BOTFREQ_DEL:y : int * : reading or writing will
+ * delete bottom frequency-point y. there will always be at least one
+ * point.
+F_SPECEDIT:x:BOTFREQ_POS:y : float * : (read-only) get position of
+ * bottom frequency-point y
+F_SPECEDIT:x:BOTFREQ_FREQ:y : float * : (read-only)
+ * get frequency of bottom frequency-point y
 IP_TAKENUMBER : int : take number
  * (read-only, returns the take number directly)
 P_TRACK : pointer to MediaTrack
@@ -1317,6 +1390,9 @@ P_SOURCE : PCM_source
  */
 @:native("GetMediaItemTakeInfo_Value")
 public static function getMediaItemTakeInfoValue(take: MediaItemTake, pArmName: String): Float;
+/** No description available */
+@:native("GetMediaItemTrack")
+public static function getMediaItemTrack(item: MediaItem): MediaTrack;
 /**
  * Copies the media source filename to filenamebuf. Note that in-project MIDI
  * media sources have no associated filename. See GetMediaSourceParent.
@@ -1475,34 +1551,36 @@ C_MAINSEND_OFFS : char * : channel offset of track send to
  * parent
 C_MAINSEND_NCH : char * : channel count of track send to parent (0=use
  * all child track channels, 1=use one channel only)
-I_FREEMODE : int * :
- * 1=track free item positioning enabled, 2=track fixed lanes enabled (call
- * UpdateTimeline() after changing)
-I_NUMFIXEDLANES : int * : number of track
- * fixed lanes (fine to call with setNewValue, but returned value is
+I_FREEZECOUNT : int * :
+ * (read-only) freeze state count
+I_FREEMODE : int * : 1=track free item
+ * positioning enabled, 2=track fixed lanes enabled (call UpdateTimeline() after
+ * changing)
+I_NUMFIXEDLANES : int * : number of track fixed lanes (fine to call
+ * with setNewValue, but returned value is read-only)
+C_LANESCOLLAPSED : char *
+ * : fixed lane collapse state (1=lanes collapsed, 2=track displays as
+ * non-fixed-lanes but hidden lanes exist)
+C_LANESETTINGS : char * : fixed lane
+ * settings (&1=auto-remove empty lanes at bottom, &2=do not auto-comp new
+ * recording, &4=newly recorded lanes play exclusively (else add lanes in
+ * layers), &8=big lanes (else small lanes), &16=add new recording at bottom
+ * (else record into first available lane), &32=hide lane buttons
+C_LANEPLAYS:N
+ * : char * :  on fixed lane tracks, 0=lane N does not play, 1=lane N plays
+ * exclusively, 2=lane N plays and other lanes also play (fine to call with
+ * setNewValue, but returned value is read-only)
+C_ALLLANESPLAY : char * : on
+ * fixed lane tracks, 0=no lanes play, 1=all lanes play, 2=some lanes play (fine
+ * to call with setNewValue 0 or 1, but returned value is
  * read-only)
-C_LANESCOLLAPSED : char * : fixed lane collapse state (1=lanes
- * collapsed, 2=track displays as non-fixed-lanes but hidden lanes
- * exist)
-C_LANESETTINGS : char * : fixed lane settings (&1=auto-remove empty
- * lanes at bottom, &2=do not auto-comp new recording, &4=newly recorded lanes
- * play exclusively (else add lanes in layers), &8=big lanes (else small lanes),
- * &16=add new recording at bottom (else record into first available lane),
- * &32=hide lane buttons
-C_LANEPLAYS:N : char * :  on fixed lane tracks, 0=lane
- * N does not play, 1=lane N plays exclusively, 2=lane N plays and other lanes
- * also play (fine to call with setNewValue, but returned value is
- * read-only)
-C_ALLLANESPLAY : char * : on fixed lane tracks, 0=no lanes play,
- * 1=all lanes play, 2=some lanes play (fine to call with setNewValue 0 or 1,
- * but returned value is read-only)
-C_BEATATTACHMODE : char * : track timebase,
- * -1=project default, 0=time, 1=beats (position, length, rate), 2=beats
- * (position only)
-F_MCP_FXSEND_SCALE : float * : scale of fx+send area in MCP
- * (0=minimum allowed, 1=maximum allowed)
-F_MCP_FXPARM_SCALE : float * : scale
- * of fx parameter area in MCP (0=minimum allowed, 1=maximum
+C_BEATATTACHMODE : char * : track timebase, -1=project default,
+ * 0=time, 1=beats (position, length, rate), 2=beats (position
+ * only)
+F_MCP_FXSEND_SCALE : float * : scale of fx+send area in MCP (0=minimum
+ * allowed, 1=maximum allowed)
+F_MCP_FXPARM_SCALE : float * : scale of fx
+ * parameter area in MCP (0=minimum allowed, 1=maximum
  * allowed)
 F_MCP_SENDRGN_SCALE : float * : scale of send area as proportion of
  * the fx+send total area (0=minimum allowed, 1=maximum
@@ -1892,16 +1970,22 @@ public static function getSetProjectAuthor(proj: ReaProject, set: Bool, autHor: 
 public static function getSetProjectGrid(project: ReaProject, set: Bool, ?division: Float, ?sWingmode: Int, ?sWingamt: Float): Int;
 /**
  * Get or set project information.
-RENDER_SETTINGS : &(1|2)=0:master mix,
+RENDER_SETTINGS : (&(1|2)==0)=master mix,
  * &1=stems+master mix, &2=stems only, &4=multichannel tracks to multichannel
  * files, &8=use render matrix, &16=tracks with only mono media to mono files,
  * &32=selected media items, &64=selected media items via master, &128=selected
  * tracks via master, &256=embed transients if format supports, &512=embed
  * metadata if format supports, &1024=embed take markers if format supports,
- * &2048=2nd pass render
-RENDER_BOUNDSFLAG : 0=custom time bounds, 1=entire
- * project, 2=time selection, 3=all project regions, 4=selected media items,
- * 5=selected project regions, 6=all project markers, 7=selected project
+ * &2048=2nd pass render, &4096=render razor edits, &8192=pre-fader stems (not
+ * if via master), &16384=only stem channels sent to parent, &32768=preserve
+ * source metadata if possible, &(1<<16)=preserve source start offset if
+ * possible, &(2<<16)=preserve source media sample rate if possible, &(4<<16)=if
+ * rendering selected items or razor edits, render as a single file,
+ * &(8<<16)=parallel render via master, &(16<<16)=delay render start to allow FX
+ * to initialize and load samples
+RENDER_BOUNDSFLAG : 0=custom time bounds,
+ * 1=entire project, 2=time selection, 3=all project regions, 4=selected media
+ * items, 5=selected project regions, 6=all project markers, 7=selected project
  * markers
 RENDER_CHANNELS : number of channels in rendered file
 RENDER_SRATE :
@@ -1920,31 +2004,51 @@ RENDER_ADDTOPROJ :
  * &1=add rendered files to project, &2=do not render files that are likely
  * silent
 RENDER_DITHER : &1=dither, &2=noise shaping, &4=dither stems, &8=noise
- * shaping on stems
-RENDER_NORMALIZE: &1=enable, (&14==0)=LUFS-I, (&14==2)=RMS,
- * (&14==4)=peak, (&14==6)=true peak, (&14==8)=LUFS-M max, (&14==10)=LUFS-S max,
- * (&4128==32)=normalize stems to common gain based on master, &64=enable
- * brickwall limit, &128=brickwall limit true peak, (&2304==256)=only normalize
- * files that are too loud, (&2304==2048)=only normalize files that are too
- * quiet, &512=apply fade-in, &1024=apply fade-out, (&4128==4096)=normalize to
- * loudest file, (&4128==4128)=normalize as if one long file, &8192=adjust mono
- * media additional -3dB
-RENDER_NORMALIZE_TARGET: render normalization target as
- * amplitude, so 0.5 means -6.02dB, 0.25 means -12.04dB, etc
-RENDER_BRICKWALL:
- * render brickwall limit as amplitude, so 0.5 means -6.02dB, 0.25 means
- * -12.04dB, etc
-RENDER_FADEIN: render fade-in (0.001 means 1 ms, requires
- * RENDER_NORMALIZE&512)
-RENDER_FADEOUT: render fade-out (0.001 means 1 ms,
- * requires RENDER_NORMALIZE&1024)
-RENDER_FADEINSHAPE: render fade-in
- * shape
+ * shaping on stems, &16=disable all
+RENDER_NORMALIZE: &1=enable normalization,
+ * (&14==0)=LUFS-I, (&14==2)=RMS, (&14==4)=peak, (&14==6)=true peak,
+ * (&14==8)=LUFS-M max, (&14==10)=LUFS-S max, &16=adjust mono media -3dB,
+ * &(16|(8<<16))=adjust mono media +3dB, (&(32|4096|(16<<16))==32)=normalize as
+ * if files play together, (&(32|4096|(16<<16))==4096)=normalize to loudest
+ * file, (&(32|4096|(16<<16))==(32|4096))=normalize as if files play together
+ * (common gain), (&(32|4096|(16<<16))==(16<<16))=normalize to master mix,
+ * &64=enable brickwall limit, &128=brickwall limit true peak,
+ * (&(256|2048)==256)=only normalize files that are too loud,
+ * (&(256|2048)==2048)=only normalize files that are too quiet, &512=apply
+ * fade-in, &1024=apply fade-out, &16384=trim starting silence, &32768=trim
+ * ending silence, &(1<<16)=pad start with silence, &(2<<16)=pad end with
+ * silence, &(4<<16)=disable all render postprocessing,
+ * (&((32<<16)|(64<<16))==(32<<16))=limit as if files play together,
+ * (&((32<<16)|(64<<16))==(64<<16))=limit to master mix
+RENDER_NORMALIZE_TARGET:
+ * render normalization target (0.5 means -6.02dB, requires
+ * RENDER_NORMALIZE&1)
+RENDER_BRICKWALL: render brickwall limit (0.5 means
+ * -6.02dB, requires RENDER_NORMALIZE&64)
+RENDER_FADEIN: render fade-in (0.001
+ * means 1 ms, requires RENDER_NORMALIZE&512)
+RENDER_FADEOUT: render fade-out
+ * (0.001 means 1 ms, requires RENDER_NORMALIZE&1024)
+RENDER_FADEINSHAPE: render
+ * fade-in shape
 RENDER_FADEOUTSHAPE: render fade-out shape
-PROJECT_SRATE : sample rate
- * (ignored unless PROJECT_SRATE_USE set)
-PROJECT_SRATE_USE : set to 1 if
- * project sample rate is used
+RENDER_PADSTART: pad
+ * render start with silence (0.001 means 1ms, requires
+ * RENDER_NORMALIZE&(1<<16))
+RENDER_PADEND: pad render end with silence (0.001
+ * means 1ms, requires RENDER_NORMALIZE&(2<<16))
+RENDER_TRIMSTART: trim render
+ * start threshold (0.5 means -6.02dB, requires
+ * RENDER_NORMALIZE&16384)
+RENDER_TRIMEND: trim render end threshold (0.5 means
+ * -6.02dB, requires RENDER_NORMALIZE&32768)
+RENDER_DELAY: seconds to delay
+ * start of render to allow FX to initialize and load samples (requires
+ * RENDER_SETTINGS&(16<<16))
+PROJECT_SRATE : sample rate (ignored unless
+ * PROJECT_SRATE_USE set)
+PROJECT_SRATE_USE : set to 1 if project sample rate is
+ * used
  */
 @:native("GetSetProjectInfo")
 public static function getSetProjectInfo(project: ReaProject, desc: String, value: Float, isSet: Bool): Float;
@@ -1979,15 +2083,17 @@ APPLYFX_FORMAT : base64-encoded sink configuration (see project
  * files, etc). Used only if RECFMT_OPENCOPY is set to 1. Callers can also pass
  * a simple 4-byte string (non-base64-encoded), e.g. "evaw" or "l3pm", to use
  * default settings for that sink type.
-RENDER_FILE : render
- * directory
-RENDER_PATTERN : render file name (may contain
- * wildcards)
-RENDER_METADATA : get or set the metadata saved with the project
- * (not metadata embedded in project media). Example, ID3 album name metadata:
- * valuestr="ID3:TALB" to get, valuestr="ID3:TALB|my album name" to set. Call
- * with valuestr="" and is_set=false to get a semicolon-separated list of
- * defined project metadata identifiers.
+RECTAG : project recording tag wildcard
+ * ($rectag). Can be used in Preferences/Audio/Recording to auto-name recorded
+ * files.
+RENDER_FILE : render directory
+RENDER_PATTERN : render file name (may
+ * contain wildcards)
+RENDER_METADATA : get or set the metadata saved with the
+ * project (not metadata embedded in project media). Example, ID3 album name
+ * metadata: valuestr="ID3:TALB" to get, valuestr="ID3:TALB|my album name" to
+ * set. Call with valuestr="" and is_set=false to get a semicolon-separated list
+ * of defined project metadata identifiers.
 RENDER_TARGETS : semicolon separated
  * list of files that would be written if the project is rendered using the most
  * recent render settings
@@ -2735,7 +2841,8 @@ public static function mainSaveProject(proj: ReaProject, forceSaveAsIn: Bool): V
 /**
  * Save the project. options: &1=save selected tracks as track template,
  * &2=include media with track template, &4=include envelopes with track
- * template. See Main_openProject, Main_SaveProject.
+ * template, &8=if not saving template, set as the new project filename for this
+ * ReaProject. See Main_openProject, Main_SaveProject.
  */
 @:native("Main_SaveProjectEx")
 public static function mainSaveProjectEx(proj: ReaProject, fileName: String, options: Int): Void;
@@ -2780,6 +2887,19 @@ public static function masterNormalizeTempo(bpm: Float, isnormalized: Bool): Flo
  */
 @:native("MB")
 public static function mb(msg: String, title: String, tYpe: Int): Int;
+/**
+ * Get information about the most recently previewed Media Explorer file.
+ * filename: last played file name. filemode: &1:insert on new track, &2:insert
+ * into sampler, &8:tempo sync 1x, &16:tempo sync 0.5x, &32:tempo sync 2x,
+ * &64:do not preserve pitch when changing playrate, &128:loop selection exists,
+ * &256:time selection exists, &512:apply pitch/rate adjustment on insert,
+ * &1024:apply volume adjustment on insert, &2048:apply normalization on insert,
+ * &8192:reverse preview. startpct/endpct: time selection in [0.0, 1.0].
+ * pitchshift/voladj/rateadj: current pitch/volume/playrate preview adjustments.
+ * srcbpm: source media tempo. extrainfo: currently unused.
+ */
+@:native("MediaExplorerGetLastPlayedFileInfo")
+public static function mediaExplorerGetLastPlayedFileInfo(): Bool;
 /**
  * Returns 1 if the track holds the item, 2 if the track is a folder containing
  * the track that holds the item, etc.
@@ -3113,7 +3233,7 @@ active_note_row: returns 0-127
 last_clicked_cc_lane: returns 0-127=CC,
  * 0x100|(0-31)=14-bit CC, 0x200=velocity, 0x201=pitch, 0x202=program,
  * 0x203=channel pressure, 0x204=bank/program select, 0x205=text, 0x206=sysex,
- * 0x207=off velocity, 0x208=notation events, 0x210=media item
+ * 0x207=off velocity, 0x208=notation events, 0x209=aftertouch, 0x210=media item
  * lane
 default_note_vel: returns 0-127
 default_note_chan: returns
@@ -3447,6 +3567,13 @@ public static function resolveFn(_in: String, out: String): String;
 @:native("resolve_fn2")
 public static function resolveFn2(_in: String, out: String, ?cHeckSubDir: String): String;
 /**
+ * Resolve a wildcard string. Any wildcards that are valid in the Big Clock can
+ * be resolved using this function. Pass in timePosition=-1 to use the current
+ * project playback position.
+ */
+@:native("ResolveWildcards")
+public static function resolveWildcards(project: ReaProject, timePosition: Float, wildcards: String, resolvedString: String): String;
+/**
  * Get the named command for the given command ID. The returned string will not
  * start with '_' (e.g. it will return "SWS_ABOUT"), it will be NULL if
  * command_id is a native action.
@@ -3546,7 +3673,11 @@ public static function setEnvelopeStateChunk(env: TrackEnvelope, str: String, is
 /**
  * Set the extended state value for a specific section and key. persist=true
  * means the value should be stored and reloaded the next time REAPER is opened.
- * See GetExtState, DeleteExtState, HasExtState.
+ * Note that with persist=true set, the value will be encoded as a text line in
+ * an .ini file and may behaved in unexpected ways if it contains any newlines:
+ * do not pass a string with newlines to this function. To save arbitrary data
+ * persistently, use base64 encoding or similar. See GetExtState,
+ * DeleteExtState, HasExtState.
  */
 @:native("SetExtState")
 public static function setExtState(section: String, keY: String, value: String, persist: Bool): Void;
@@ -3704,6 +3835,68 @@ I_TAKEFX_NCH : int * : number of internal audio channels for
 I_CUSTOMCOLOR : int * : custom color, OS dependent color|0x1000000
  * (i.e. ColorToNative(r,g,b)|0x1000000). If you do not |0x1000000, then it will
  * not be used, but will store the color
+IP_SPECEDIT:CNT : int : spectral edit
+ * count (read-only)
+IP_SPECEDIT:DELETE:x : int : read or write this key to
+ * remove the spectral edit specified
+IP_SPECEDIT:ADD : int : read or write this
+ * key to add a new spectral edit (returns index)
+IP_SPECEDIT:SORT : int : read
+ * or write this key to re-sort spectral edits (be sure to do this following a
+ * position change or insert of new edit)
+I_SPECEDIT:FFT_SIZE : int * : FFT size
+ * used by spectral edits for this take
+D_SPECEDIT:x:POSITION : double * :
+ * position of spectral edit start (changing this requires a resort of spectral
+ * edits)
+D_SPECEDIT:x:LENGTH : double * : length of spectral
+ * edit
+F_SPECEDIT:x:GAIN : float * : gain of spectral edit
+F_SPECEDIT:x:FADE_IN
+ * : float * : fade-in size 0..1
+F_SPECEDIT:x:FADE_OUT : float * : fade-out size
+ * 0..1
+F_SPECEDIT:x:FADE_LOW : float * : fade-lf size 0..1
+F_SPECEDIT:x:FADE_HI
+ * : float * : fade-hf size 0..1
+I_SPECEDIT:x:CHAN : int * : channel index, -1
+ * for omni
+I_SPECEDIT:x:FLAGS : int * : flags, &1=bypassed,
+ * &2=solo
+F_SPECEDIT:x:GATE_THRESH : float * : gate
+ * threshold
+F_SPECEDIT:x:GATE_FLOOR : float * : gate
+ * floor
+F_SPECEDIT:x:COMP_THRESH : float * : comp
+ * threshold
+F_SPECEDIT:x:COMP_RATIO : float * : comp
+ * ratio
+B_SPECEDIT:x:SELECTED : bool * : selection
+ * state
+I_SPECEDIT:x:TOPFREQ_CNT : int * : (read-only) number of top
+ * frequency-points
+I_SPECEDIT:x:TOPFREQ_ADD:pos:val : int * : reading or
+ * writing will insert top frequency-point with position/value pair, returns
+ * index
+I_SPECEDIT:x:TOPFREQ_DEL:y : int * : reading or writing will delete top
+ * frequency-point y. there will always be at least one
+ * point.
+F_SPECEDIT:x:TOPFREQ_POS:y : float * : (read-only) get position of top
+ * frequency-point y
+F_SPECEDIT:x:TOPFREQ_FREQ:y : float * : (read-only) get
+ * frequency of top frequency-point y
+I_SPECEDIT:x:BOTFREQ_CNT : int * : number
+ * of bottom frequency-points
+I_SPECEDIT:x:BOTFREQ_ADD:pos:val : int * : reading
+ * or writing will insert bottom frequency-point with position/value pair,
+ * returns index
+I_SPECEDIT:x:BOTFREQ_DEL:y : int * : reading or writing will
+ * delete bottom frequency-point y. there will always be at least one
+ * point.
+F_SPECEDIT:x:BOTFREQ_POS:y : float * : (read-only) get position of
+ * bottom frequency-point y
+F_SPECEDIT:x:BOTFREQ_FREQ:y : float * : (read-only)
+ * get frequency of bottom frequency-point y
 IP_TAKENUMBER : int : take number
  * (read-only, returns the take number directly)
  */
@@ -3833,34 +4026,36 @@ C_MAINSEND_OFFS : char * : channel offset of track send to
  * parent
 C_MAINSEND_NCH : char * : channel count of track send to parent (0=use
  * all child track channels, 1=use one channel only)
-I_FREEMODE : int * :
- * 1=track free item positioning enabled, 2=track fixed lanes enabled (call
- * UpdateTimeline() after changing)
-I_NUMFIXEDLANES : int * : number of track
- * fixed lanes (fine to call with setNewValue, but returned value is
+I_FREEZECOUNT : int * :
+ * (read-only) freeze state count
+I_FREEMODE : int * : 1=track free item
+ * positioning enabled, 2=track fixed lanes enabled (call UpdateTimeline() after
+ * changing)
+I_NUMFIXEDLANES : int * : number of track fixed lanes (fine to call
+ * with setNewValue, but returned value is read-only)
+C_LANESCOLLAPSED : char *
+ * : fixed lane collapse state (1=lanes collapsed, 2=track displays as
+ * non-fixed-lanes but hidden lanes exist)
+C_LANESETTINGS : char * : fixed lane
+ * settings (&1=auto-remove empty lanes at bottom, &2=do not auto-comp new
+ * recording, &4=newly recorded lanes play exclusively (else add lanes in
+ * layers), &8=big lanes (else small lanes), &16=add new recording at bottom
+ * (else record into first available lane), &32=hide lane buttons
+C_LANEPLAYS:N
+ * : char * :  on fixed lane tracks, 0=lane N does not play, 1=lane N plays
+ * exclusively, 2=lane N plays and other lanes also play (fine to call with
+ * setNewValue, but returned value is read-only)
+C_ALLLANESPLAY : char * : on
+ * fixed lane tracks, 0=no lanes play, 1=all lanes play, 2=some lanes play (fine
+ * to call with setNewValue 0 or 1, but returned value is
  * read-only)
-C_LANESCOLLAPSED : char * : fixed lane collapse state (1=lanes
- * collapsed, 2=track displays as non-fixed-lanes but hidden lanes
- * exist)
-C_LANESETTINGS : char * : fixed lane settings (&1=auto-remove empty
- * lanes at bottom, &2=do not auto-comp new recording, &4=newly recorded lanes
- * play exclusively (else add lanes in layers), &8=big lanes (else small lanes),
- * &16=add new recording at bottom (else record into first available lane),
- * &32=hide lane buttons
-C_LANEPLAYS:N : char * :  on fixed lane tracks, 0=lane
- * N does not play, 1=lane N plays exclusively, 2=lane N plays and other lanes
- * also play (fine to call with setNewValue, but returned value is
- * read-only)
-C_ALLLANESPLAY : char * : on fixed lane tracks, 0=no lanes play,
- * 1=all lanes play, 2=some lanes play (fine to call with setNewValue 0 or 1,
- * but returned value is read-only)
-C_BEATATTACHMODE : char * : track timebase,
- * -1=project default, 0=time, 1=beats (position, length, rate), 2=beats
- * (position only)
-F_MCP_FXSEND_SCALE : float * : scale of fx+send area in MCP
- * (0=minimum allowed, 1=maximum allowed)
-F_MCP_FXPARM_SCALE : float * : scale
- * of fx parameter area in MCP (0=minimum allowed, 1=maximum
+C_BEATATTACHMODE : char * : track timebase, -1=project default,
+ * 0=time, 1=beats (position, length, rate), 2=beats (position
+ * only)
+F_MCP_FXSEND_SCALE : float * : scale of fx+send area in MCP (0=minimum
+ * allowed, 1=maximum allowed)
+F_MCP_FXPARM_SCALE : float * : scale of fx
+ * parameter area in MCP (0=minimum allowed, 1=maximum
  * allowed)
 F_MCP_SENDRGN_SCALE : float * : scale of send area as proportion of
  * the fx+send total area (0=minimum allowed, 1=maximum
@@ -3877,7 +4072,7 @@ D_PLAY_OFFSET : double *
 public static function setMediaTrackInfoValue(tr: MediaTrack, pArmName: String, neWvalue: Float): Bool;
 /**
  * Set the MIDI editor grid division. 0.25=quarter note, 1.0/3.0=half note
- * tripet, etc.
+ * tripet, etc. Sets the swing enabled/strength from the arrange settings.
  */
 @:native("SetMIDIEditorGrid")
 public static function setMidiEditorGrid(project: ReaProject, division: Float): Void;
@@ -3968,11 +4163,11 @@ public static function setProjectMarkerByIndex(proj: ReaProject, markrgnIdX: Int
  * Differs from SetProjectMarker4 in that markrgnidx is 0 for the first
  * marker/region, 1 for the next, etc (see EnumProjectMarkers3), rather than
  * representing the displayed marker/region ID number (see SetProjectMarker3).
- * Function will fail if attempting to set a duplicate ID number for a region
- * (duplicate ID numbers for markers are OK). , flags&1 to clear name. If
- * flags&2, markers will not be re-sorted, and after making updates, you MUST
- * call SetProjectMarkerByIndex2 with markrgnidx=-1 and flags&2 to force
- * re-sort/UI updates.
+ * IDnumber < 0 to ignore. Function will fail if attempting to set a duplicate
+ * ID number for a region (duplicate ID numbers for markers are OK). flags&1 to
+ * clear name. If flags&2, markers will not be re-sorted, and after making
+ * updates, you MUST call SetProjectMarkerByIndex2 with markrgnidx=-1 and
+ * flags&2 to force re-sort/UI updates.
  */
 @:native("SetProjectMarkerByIndex2")
 public static function setProjectMarkerByIndex2(proj: ReaProject, markrgnIdX: Int, isrgn: Bool, pos: Float, rgnend: Float, idnumber: Int, name: String, color: Int, flags: Int): Bool;
@@ -5307,6 +5502,8 @@ fx_name : name of FX (also supported as
  * original_name)
 GainReduction_dB : [ReaComp + other supported
  * compressors]
+is_instrument : 1 if instrument, 0 if not
+ * (v7.40+)
 parent_container : FX ID of parent container, if any
  * (v7.06+)
 container_count : [Container] number of FX in
@@ -5405,8 +5602,16 @@ container_nch_out : number of output pints for
  * container
 container_nch_feedback : number of internal feedback channels
  * enabled in container
-focused : reading returns 1 if focused. Writing a
- * positive value to this sets the FX UI as "last focused."
+channel_config : reading returns 3 values: requested
+ * channel count (0 = VST3 auto), channel mode (0=multichannel, 1=multi-mono,
+ * 2=multi-stereo), and supported flags (&1=multichannel is supported,
+ * &2=automatic channel count is supported, &4=multi-mono is supported,
+ * &8=multi-stereo is supported). writing accepts 1 or more values, channel
+ * count, and channel mode if specified. VST3 bus sizes are only advisory,
+ * plug-ins may not use the value. Not supported for containers, containers
+ * should use container_nch etc.
+focused : reading returns 1 if focused. Writing
+ * a positive value to this sets the FX UI as "last focused."
 last_touched :
  * reading returns two integers, one indicates whether FX is the last-touched
  * FX, the second indicates which parameter was last touched. Writing a negative
@@ -5820,8 +6025,16 @@ container_nch_out : number of output pints for
  * container
 container_nch_feedback : number of internal feedback channels
  * enabled in container
-focused : reading returns 1 if focused. Writing a
- * positive value to this sets the FX UI as "last focused."
+channel_config : reading returns 3 values: requested
+ * channel count (0 = VST3 auto), channel mode (0=multichannel, 1=multi-mono,
+ * 2=multi-stereo), and supported flags (&1=multichannel is supported,
+ * &2=automatic channel count is supported, &4=multi-mono is supported,
+ * &8=multi-stereo is supported). writing accepts 1 or more values, channel
+ * count, and channel mode if specified. VST3 bus sizes are only advisory,
+ * plug-ins may not use the value. Not supported for containers, containers
+ * should use container_nch etc.
+focused : reading returns 1 if focused. Writing
+ * a positive value to this sets the FX UI as "last focused."
 last_touched :
  * reading returns two integers, one indicates whether FX is the last-touched
  * FX, the second indicates which parameter was last touched. Writing a negative
@@ -9543,10 +9756,11 @@ Sets action options for the script.
 flag&1:
  * script will auto-terminate if re-launched while already running
 flag&2: if
- * (flag&1) is set, script will re-launch after auto-terminating
-flag&4: set
- * script toggle state on
-flag&8: set script toggle state off
+ * (flag&1) is set, script will re-launch after auto-terminating. otherwise,
+ * re-launch is ignored.
+flag&4: set script toggle state on
+flag&8: set script
+ * toggle state off
  */
 @:native("set_action_options")
 public static function setActionOptions(flag: Dynamic): Void;

@@ -49,14 +49,6 @@ Call Detach to let the object
  * be garbage-collected after unuse again.
 List clipper objects may only be
  * attached to the context they were created for.
-Fonts are (currently) a
- * special case: they must be attached to the context
-before usage. Furthermore,
- * fonts may only be attached or detached immediately
-after the context is
- * created or before any other function calls modifying the
-context per defer
- * cycle. See "limitations" in the font API documentation.
  */
 @:native("ImGui_Attach")
 public static function imGuiAttach(ctX: ImGuiContext, obj: ImGuiResource): Void;
@@ -80,22 +72,23 @@ public static function imGuiAttach(ctX: ImGuiContext, obj: ImGuiResource): Void;
 @:native("ImGui_Begin")
 public static function imGuiBegin(ctX: ImGuiContext, name: String, ?pOpen: Bool, ?flagsIn: Int): Bool;
 /**
- * Manual sizing (each axis can use a different setting e.g. ImVec2(0.0f,
- * 400.0f)):
+ * Manual sizing (each axis can use a different setting e.g. size_w=0 and
+ * size_h=400):
 - = 0.0: use remaining parent window size for this axis
-- \> 0.0:
- * use specified size for this axis
-- < 0.0: right/bottom-align to specified
- * distance from available content boundaries
-Specifying ChildFlags_AutoResizeX
- * or ChildFlags_AutoResizeY makes the sizing
-automatic based on child
- * contents.
-Combining both ChildFlags_AutoResizeX _and_ ChildFlags_AutoResizeY
- * defeats
-purpose of a scrolling region and is NOT recommended.
-Returns false
- * to indicate the window is collapsed or fully clipped.
+- \>
+ * 0.0: use specified size for this axis
+- < 0.0: right/bottom-align to
+ * specified distance from available content boundaries
+Specifying
+ * ChildFlags_AutoResizeX or ChildFlags_AutoResizeY makes the sizing
+automatic
+ * based on child contents.
+Combining both ChildFlags_AutoResizeX _and_
+ * ChildFlags_AutoResizeY defeats
+purpose of a scrolling region and is NOT
+ * recommended.
+Returns false to indicate the window is collapsed or fully
+ * clipped.
  */
 @:native("ImGui_BeginChild")
 public static function imGuiBeginChild(ctX: ImGuiContext, strId: String, ?sizeWIn: Float, ?sizeHIn: Float, ?cHildFlagsIn: Int, ?windowFlagsIn: Int): Bool;
@@ -117,11 +110,13 @@ Those can be nested but it
  * disabled).
 Tooltips windows by exception are opted out of
  * disabling.
-BeginDisabled(false) essentially does nothing useful but is
+BeginDisabled(false)/EndDisabled essentially does nothing but is
  * provided to
-facilitate use of boolean expressions.
-If you can avoid calling
- * BeginDisabled(false)/EndDisabled() best to avoid it.
+facilitate use of boolean expressions (as a micro-optimization:
+ * if you have tens
+of thousands of BeginDisabled(false)/EndDisabled() pairs,
+ * you might want to
+refactor your code to avoid making those calls)
  */
 @:native("ImGui_BeginDisabled")
 public static function imGuiBeginDisabled(ctX: ImGuiContext, ?disabledIn: Bool): Void;
@@ -268,6 +263,11 @@ public static function imGuiBulletText(ctX: ImGuiContext, teXt: String): Void;
 @:native("ImGui_Button")
 public static function imGuiButton(ctX: ImGuiContext, label: String, ?sizeWIn: Float, ?sizeHIn: Float): Bool;
 /**
+ * Do not disable navigation/tabbing. Otherwise disabled by default.
+ */
+@:native("ImGui_ButtonFlags_EnableNav")
+public static function imGuiButtonFlagsEnableNav(): Int;
+/**
  * React on left mouse button (default).
  */
 @:native("ImGui_ButtonFlags_MouseButtonLeft")
@@ -329,8 +329,8 @@ public static function imGuiChildFlagsAutoResizeY(): Int;
 /**
  * Show an outer border and enable WindowPadding.
  */
-@:native("ImGui_ChildFlags_Border")
-public static function imGuiChildFlagsBorder(): Int;
+@:native("ImGui_ChildFlags_Borders")
+public static function imGuiChildFlagsBorders(): Int;
 /**
  * Style the child window like a framed item: use Col_FrameBg,
   
@@ -343,7 +343,7 @@ public static function imGuiChildFlagsBorder(): Int;
 @:native("ImGui_ChildFlags_FrameStyle")
 public static function imGuiChildFlagsFrameStyle(): Int;
 /**
- * Share focus scope, allow gamepad/keyboard navigation to cross over parent
+ * Share focus scope, allow keyboard/gamepad navigation to cross over parent
   
  * border to this child or between sibling child windows.
  */
@@ -438,6 +438,11 @@ public static function imGuiColHeaderActive(): Int;
 /** No description available */
 @:native("ImGui_Col_HeaderHovered")
 public static function imGuiColHeaderHovered(): Int;
+/**
+ * InputText cursor/caret
+ */
+@:native("ImGui_Col_InputTextCursor")
+public static function imGuiColInputTextCursor(): Int;
 /** No description available */
 @:native("ImGui_Col_MenuBarBg")
 public static function imGuiColMenuBarBg(): Int;
@@ -447,10 +452,10 @@ public static function imGuiColMenuBarBg(): Int;
 @:native("ImGui_Col_ModalWindowDimBg")
 public static function imGuiColModalWindowDimBg(): Int;
 /**
- * Gamepad/keyboard: current highlighted item.
+ * Color of keyboard/gamepad navigation cursor/rectangle, when visible
  */
-@:native("ImGui_Col_NavHighlight")
-public static function imGuiColNavHighlight(): Int;
+@:native("ImGui_Col_NavCursor")
+public static function imGuiColNavCursor(): Int;
 /**
  * Darken/colorize entire screen behind the CTRL+TAB window list, when active.
  */
@@ -582,7 +587,14 @@ public static function imGuiColText(): Int;
 /** No description available */
 @:native("ImGui_Col_TextDisabled")
 public static function imGuiColTextDisabled(): Int;
-/** No description available */
+/**
+ * Hyperlink color
+ */
+@:native("ImGui_Col_TextLink")
+public static function imGuiColTextLink(): Int;
+/**
+ * Selected text inside an InputText
+ */
 @:native("ImGui_Col_TextSelectedBg")
 public static function imGuiColTextSelectedBg(): Int;
 /**
@@ -600,6 +612,11 @@ public static function imGuiColTitleBgActive(): Int;
  */
 @:native("ImGui_Col_TitleBgCollapsed")
 public static function imGuiColTitleBgCollapsed(): Int;
+/**
+ * Tree node hierarchy outlines when using TreeNodeFlags_DrawLines
+ */
+@:native("ImGui_Col_TreeLines")
+public static function imGuiColTreeLines(): Int;
 /**
  * Background of normal windows. See also WindowFlags_NoBackground.
  */
@@ -676,16 +693,21 @@ public static function imGuiColorEdit4(ctX: ImGuiContext, label: String, colRgba
 @:native("ImGui_ColorEditFlags_AlphaBar")
 public static function imGuiColorEditFlagsAlphaBar(): Int;
 /**
- * ColorEdit, ColorPicker, ColorButton: display preview as a transparent color
- 
- * over a checkerboard, instead of opaque.
+ * Disable rendering a checkerboard background behind transparent color.
  */
-@:native("ImGui_ColorEditFlags_AlphaPreview")
-public static function imGuiColorEditFlagsAlphaPreview(): Int;
+@:native("ImGui_ColorEditFlags_AlphaNoBg")
+public static function imGuiColorEditFlagsAlphaNoBg(): Int;
 /**
- * ColorEdit, ColorPicker, ColorButton: display half opaque / half
- * checkerboard,
-   instead of opaque.
+ * Disable alpha in the preview.
+   Contrary to _NoAlpha it may still be edited
+ * when calling ColorEdit4/ColorPicker4.
+   For ColorButton this does the same
+ * as _NoAlpha.
+ */
+@:native("ImGui_ColorEditFlags_AlphaOpaque")
+public static function imGuiColorEditFlagsAlphaOpaque(): Int;
+/**
+ * Display half opaque / half transparent preview.
  */
 @:native("ImGui_ColorEditFlags_AlphaPreviewHalf")
 public static function imGuiColorEditFlagsAlphaPreviewHalf(): Int;
@@ -905,18 +927,6 @@ public static function imGuiConfigFlagsDockingEnable(): Int;
 @:native("ImGui_ConfigFlags_NavEnableKeyboard")
 public static function imGuiConfigFlagsNavEnableKeyboard(): Int;
 /**
- * Instruct navigation to move the mouse cursor.
- */
-@:native("ImGui_ConfigFlags_NavEnableSetMousePos")
-public static function imGuiConfigFlagsNavEnableSetMousePos(): Int;
-/**
- * Instruct navigation to not capture global keyboard input when
-  
- * ConfigFlags_NavEnableKeyboard is set (see SetNextFrameWantCaptureKeyboard).
- */
-@:native("ImGui_ConfigFlags_NavNoCaptureKeyboard")
-public static function imGuiConfigFlagsNavNoCaptureKeyboard(): Int;
-/**
  * Instruct dear imgui to disable keyboard inputs and interactions.
 This is done
  * by ignoring keyboard events and clearing existing states.
@@ -961,6 +971,17 @@ public static function imGuiConfigVarDebugBeginReturnValueLoop(): Int;
  */
 @:native("ImGui_ConfigVar_DebugBeginReturnValueOnce")
 public static function imGuiConfigVarDebugBeginReturnValueOnce(): Int;
+/**
+ * Highlight and show an error message popup when multiple items have
+ * conflicting
+   identifiers.
+   - Code should use PushID/PopID in loops, or
+ * append "##xx" to same-label identifiers.
+   - Empty label e.g. Button("") ==
+ * same ID as parent widget/node. Use Button("##xx") instead!
+ */
+@:native("ImGui_ConfigVar_DebugHighlightIdConflicts")
+public static function imGuiConfigVarDebugHighlightIdConflicts(): Int;
 /**
  * Simplified docking mode: disable window splitting, so docking is limited to
  
@@ -1095,6 +1116,53 @@ public static function imGuiConfigVarMouseDoubleClickTime(): Int;
 @:native("ImGui_ConfigVar_MouseDragThreshold")
 public static function imGuiConfigVarMouseDragThreshold(): Int;
 /**
+ * Instruct navigation to not capture global keyboard input
+   (see
+ * SetNextFrameWantCaptureKeyboard).
+ */
+@:native("ImGui_ConfigVar_NavCaptureKeyboard")
+public static function imGuiConfigVarNavCaptureKeyboard(): Int;
+/**
+ * Navigation cursor is always visible.
+ */
+@:native("ImGui_ConfigVar_NavCursorVisibleAlways")
+public static function imGuiConfigVarNavCursorVisibleAlways(): Int;
+/**
+ * Using directional navigation key makes the cursor visible.
+   Mouse click
+ * hides the cursor.
+ */
+@:native("ImGui_ConfigVar_NavCursorVisibleAuto")
+public static function imGuiConfigVarNavCursorVisibleAuto(): Int;
+/**
+ * Pressing Escape can clear focused item + navigation id/highlight.
+   Set to
+ * false if you want to always keep highlight on.
+ */
+@:native("ImGui_ConfigVar_NavEscapeClearFocusItem")
+public static function imGuiConfigVarNavEscapeClearFocusItem(): Int;
+/**
+ * Pressing Escape can clear focused window as well
+   (superset of
+ * ConfigVar_NavEscapeClearFocusItem).
+ */
+@:native("ImGui_ConfigVar_NavEscapeClearFocusWindow")
+public static function imGuiConfigVarNavEscapeClearFocusWindow(): Int;
+/**
+ * Directional/tabbing navigation teleports the mouse cursor.
+ */
+@:native("ImGui_ConfigVar_NavMoveSetMousePos")
+public static function imGuiConfigVarNavMoveSetMousePos(): Int;
+/**
+ * Enable scrolling page by page when clicking outside the scrollbar grab.
+  
+ * When disabled, always scroll to clicked location.
+   When enabled,
+ * Shift+Click scrolls to clicked location.
+ */
+@:native("ImGui_ConfigVar_ScrollbarScrollByPage")
+public static function imGuiConfigVarScrollbarScrollByPage(): Int;
+/**
  * Disable default OS window decoration. Enabling decoration can create
   
  * subsequent issues at OS levels (e.g. minimum window size).
@@ -1127,33 +1195,43 @@ public static function imGuiCreateContext(label: String, ?configFlagsIn: Int): I
 @:native("ImGui_CreateDrawListSplitter")
 public static function imGuiCreateDrawListSplitter(draWList: ImGuiDrawList): ImGuiDrawListSplitter;
 /**
- * Load a font matching a font family name or from a font file.
-The font will
- * remain valid while it's attached to a context. See Attach.
-The family name
- * can be an installed font or one of the generic fonts:
-sans-serif, serif,
- * monospace, cursive, fantasy.
-If 'family_or_file' specifies a path to a font
- * file (contains a / or \\):
-- The first byte of 'flags' is used as the font
- * index within the file
-- The font styles in 'flags' are simulated by the font
- * renderer
+ * Load a font matching a font family name.
+The family name can be an installed
+ * font or one of the generic fonts:
+sans-serif, serif, monospace, cursive,
+ * fantasy.
+See CreateFontFromFile.
  */
 @:native("ImGui_CreateFont")
-public static function imGuiCreateFont(familYOrFile: String, size: Int, ?flagsIn: Int): ImGuiFont;
+public static function imGuiCreateFont(familY: String, ?flagsIn: Int): ImGuiFont;
+/**
+ * Load a font from a file. Available characters are limited to those
+contained
+ * in the file.
+Bits 0-15 of 'index' are the the index of the face in the font
+ * file (starting
+from 0). Set to 0 if the font file contains only one font
+ * face.
+Bits 16-30 (for TrueType GX and OpenType Font Variations only) specify
+ * the
+named instance index for the current face index (starting from 1).
+0
+ * ignores named instances.
+The font styles in 'flags' are simulated by the
+ * rasterizer.
+See also CreateFontFromMem.
+ */
+@:native("ImGui_CreateFontFromFile")
+public static function imGuiCreateFontFromFile(file: String, ?indeXIn: Int, ?flagsIn: Int): ImGuiFont;
 /**
  * Requires REAPER v6.44 or newer for EEL and Lua. Use CreateFont or
 explicitely
  * specify data_sz to support older versions.
-- The first byte of 'flags' is
- * used as the font index within the file
-- The font styles in 'flags' are
- * simulated by the font renderer
+See CreateFontFromFile for the
+ * meaning of 'index' and 'flags'.
  */
 @:native("ImGui_CreateFontFromMem")
-public static function imGuiCreateFontFromMem(data: String, size: Int, ?flagsIn: Int): ImGuiFont;
+public static function imGuiCreateFontFromMem(data: String, ?indeXIn: Int, ?flagsIn: Int): ImGuiFont;
 /**
  * Compile an EEL program.
 Standard EEL
@@ -1188,6 +1266,11 @@ CreateImage or explicitely specify data_sz to support older versions.
  */
 @:native("ImGui_CreateImageFromMem")
 public static function imGuiCreateImageFromMem(data: String, ?flagsIn: Int): ImGuiImage;
+/**
+ * Create a blank image of the specified dimensions. See Image_SetPixels_Array.
+ */
+@:native("ImGui_CreateImageFromSize")
+public static function imGuiCreateImageFromSize(wIdtH: Int, heigHt: Int, ?flagsIn: Int): ImGuiImage;
 /** No description available */
 @:native("ImGui_CreateImageSet")
 public static function imGuiCreateImageSet(): ImGuiImageSet;
@@ -1206,6 +1289,11 @@ public static function imGuiCreateTextFilter(?defaultFilterIn: String): ImGuiTex
 /** No description available */
 @:native("ImGui_DebugFlashStyleColor")
 public static function imGuiDebugFlashStyleColor(ctX: ImGuiContext, idX: Int): Void;
+/**
+ * Add a line to the debug log window. See ShowDebugLogWindow.
+ */
+@:native("ImGui_DebugLog")
+public static function imGuiDebugLog(ctX: ImGuiContext, teXt: String): Void;
 /** No description available */
 @:native("ImGui_DebugStartItemPicker")
 public static function imGuiDebugStartItemPicker(ctX: ImGuiContext): Void;
@@ -1779,40 +1867,37 @@ public static function imGuiGetColorEx(ctX: ImGuiContext, colRgba: Int, ?alpHaMu
 @:native("ImGui_GetConfigVar")
 public static function imGuiGetConfigVar(ctX: ImGuiContext, varIdX: Int): Float;
 /**
- * == GetContentRegionMax() - GetCursorPos()
+ * Available space from current position. This is your best friend.
  */
 @:native("ImGui_GetContentRegionAvail")
 public static function imGuiGetContentRegionAvail(ctX: ImGuiContext): Float;
 /**
- * Current content boundaries (typically window boundaries including
- * scrolling,
-or current column boundaries), in windows coordinates.
- */
-@:native("ImGui_GetContentRegionMax")
-public static function imGuiGetContentRegionMax(ctX: ImGuiContext): Float;
-/**
- * Cursor position in window
+ * Cursor position in window-local coordinates.
  */
 @:native("ImGui_GetCursorPos")
 public static function imGuiGetCursorPos(ctX: ImGuiContext): Float;
 /**
- * Cursor X position in window
+ * Cursor X position in window-local coordinates.
  */
 @:native("ImGui_GetCursorPosX")
 public static function imGuiGetCursorPosX(ctX: ImGuiContext): Float;
 /**
- * Cursor Y position in window
+ * Cursor Y position in window-local coordinates.
  */
 @:native("ImGui_GetCursorPosY")
 public static function imGuiGetCursorPosY(ctX: ImGuiContext): Float;
 /**
- * Cursor position in absolute screen coordinates (useful to work with the
- * DrawList API).
+ * Cursor position in absolute screen coordinates.
+Prefer using this rather than
+ * GetCursorPos (it's also more useful to work with
+the DrawList API).
  */
 @:native("ImGui_GetCursorScreenPos")
 public static function imGuiGetCursorScreenPos(ctX: ImGuiContext): Float;
 /**
  * Initial cursor position in window coordinates.
+Call GetCursorScreenPos after
+ * Begin to get the absolute coordinates version.
  */
 @:native("ImGui_GetCursorStartPos")
 public static function imGuiGetCursorStartPos(ctX: ImGuiContext): Float;
@@ -2047,18 +2132,6 @@ public static function imGuiGetTreeNodeToLabelSpacing(ctX: ImGuiContext): Float;
 /** No description available */
 @:native("ImGui_GetVersion")
 public static function imGuiGetVersion(): String;
-/**
- * Content boundaries max (roughly (0,0)+Size-Scroll) where Size can
- * be
-overridden with SetNextWindowContentSize, in window coordinates.
- */
-@:native("ImGui_GetWindowContentRegionMax")
-public static function imGuiGetWindowContentRegionMax(ctX: ImGuiContext): Float;
-/**
- * Content boundaries min (roughly (0,0)-Scroll), in window coordinates.
- */
-@:native("ImGui_GetWindowContentRegionMin")
-public static function imGuiGetWindowContentRegionMin(ctX: ImGuiContext): Float;
 /** No description available */
 @:native("ImGui_GetWindowDockID")
 public static function imGuiGetWindowDockId(ctX: ImGuiContext): Int;
@@ -2077,21 +2150,25 @@ public static function imGuiGetWindowDpiScale(ctX: ImGuiContext): Float;
 public static function imGuiGetWindowDrawList(ctX: ImGuiContext): ImGuiDrawList;
 /**
  * Get current window height (shortcut for (GetWindowSize().h).
+It is unlikely
+ * you ever need to use this!
  */
 @:native("ImGui_GetWindowHeight")
 public static function imGuiGetWindowHeight(ctX: ImGuiContext): Float;
 /**
- * Get current window position in screen space (note: it is unlikely you need
- * to
-use this. Consider using current layout pos instead,
- * GetCursorScreenPos()).
+ * Get current window position in screen space.
+It is unlikely you ever need to
+ * use this!
+Consider always using GetCursorScreenPos and GetContentRegionAvail
+ * instead.
  */
 @:native("ImGui_GetWindowPos")
 public static function imGuiGetWindowPos(ctX: ImGuiContext): Float;
 /**
- * Get current window size (note: it is unlikely you need to use this.
+ * Get current window size.
+It is unlikely you ever need to use this!
 Consider
- * using GetCursorScreenPos() and e.g. GetContentRegionAvail() instead)
+ * always using GetCursorScreenPos and GetContentRegionAvail instead.
  */
 @:native("ImGui_GetWindowSize")
 public static function imGuiGetWindowSize(ctX: ImGuiContext): Float;
@@ -2102,6 +2179,8 @@ public static function imGuiGetWindowSize(ctX: ImGuiContext): Float;
 public static function imGuiGetWindowViewport(ctX: ImGuiContext): ImGuiViewport;
 /**
  * Get current window width (shortcut for (GetWindowSize().w).
+It is unlikely
+ * you ever need to use this!
  */
 @:native("ImGui_GetWindowWidth")
 public static function imGuiGetWindowWidth(ctX: ImGuiContext): Float;
@@ -2201,7 +2280,7 @@ public static function imGuiHoveredFlagsDockHierarchy(): Int;
 @:native("ImGui_HoveredFlags_ForTooltip")
 public static function imGuiHoveredFlagsForTooltip(): Int;
 /**
- * Disable using gamepad/keyboard navigation state when active, always query
+ * Disable using keyboard/gamepad navigation state when active, always query
  * mouse.
  */
 @:native("ImGui_HoveredFlags_NoNavOverride")
@@ -2255,23 +2334,50 @@ public static function imGuiHoveredFlagsRootWindow(): Int;
 @:native("ImGui_HoveredFlags_Stationary")
 public static function imGuiHoveredFlagsStationary(): Int;
 /**
- * Adds 2.0 to the provided size if a border is visible.
+ * Adds StyleVar_ImageBorderSize on each side.
  */
 @:native("ImGui_Image")
-public static function imGuiImage(ctX: ImGuiContext, image: ImGuiImage, imageSizeW: Float, imageSizeH: Float, ?uv0XIn: Float, ?uv0YIn: Float, ?uv1XIn: Float, ?uv1YIn: Float, ?tintColRgbaIn: Int, ?borderColRgbaIn: Int): Void;
+public static function imGuiImage(ctX: ImGuiContext, image: ImGuiImage, imageSizeW: Float, imageSizeH: Float, ?uv0XIn: Float, ?uv0YIn: Float, ?uv1XIn: Float, ?uv1YIn: Float): Void;
 /**
- * Adds StyleVar_FramePadding*2.0 to provided size.
+ * Draws a background based on regular Button color + optionally an
+ * inner
+background if specified. Adds StyleVar_FramePadding to provided size.
  */
 @:native("ImGui_ImageButton")
 public static function imGuiImageButton(ctX: ImGuiContext, strId: String, image: ImGuiImage, imageSizeW: Float, imageSizeH: Float, ?uv0XIn: Float, ?uv0YIn: Float, ?uv1XIn: Float, ?uv1YIn: Float, ?bgColRgbaIn: Int, ?tintColRgbaIn: Int): Bool;
+/**
+ * Return nil instead of returning an error.
+ */
+@:native("ImGui_ImageFlags_NoErrors")
+public static function imGuiImageFlagsNoErrors(): Int;
+/** No description available */
+@:native("ImGui_ImageFlags_None")
+public static function imGuiImageFlagsNone(): Int;
 /**
  * 'img' cannot be another ImageSet.
  */
 @:native("ImGui_ImageSet_Add")
 public static function imGuiImageSetAdd(set: ImGuiImageSet, scale: Float, image: ImGuiImage): Void;
+/**
+ * Draws a background based on regular Button color + optionally an
+ * inner
+background if specified. Adds StyleVar_FramePadding to provided size.
+ */
+@:native("ImGui_ImageWithBg")
+public static function imGuiImageWithBg(ctX: ImGuiContext, image: ImGuiImage, imageSizeW: Float, imageSizeH: Float, ?uv0XIn: Float, ?uv0YIn: Float, ?uv1XIn: Float, ?uv1YIn: Float, ?bgColRgbaIn: Int, ?tintColRgbaIn: Int): Void;
+/**
+ * Read the pixel data of the given rectangle. Pixel format is 0xRRGGBBAAp+0.
+ */
+@:native("ImGui_Image_GetPixels_Array")
+public static function imGuiImageGetPixelsArray(image: ImGuiBitmap, x: Int, y: Int, w: Int, h: Int, piXels: ReaperArray, ?offSetIn: Int, ?pitcHIn: Int): Void;
 /** No description available */
 @:native("ImGui_Image_GetSize")
 public static function imGuiImageGetSize(image: ImGuiImage): Float;
+/**
+ * Write the pixel data of the given rectangle. Pixel format is 0xRRGGBBAAp+0.
+ */
+@:native("ImGui_Image_SetPixels_Array")
+public static function imGuiImageSetPixelsArray(image: ImGuiBitmap, x: Int, y: Int, w: Int, h: Int, piXels: ReaperArray, ?offSetIn: Int, ?pitcHIn: Int): Void;
 /**
  * Move content position toward the right, by 'indent_w',
  * or
@@ -2411,11 +2517,11 @@ public static function imGuiInputTextFlagsCallbackCharFilter(): Int;
 @:native("ImGui_InputTextFlags_CallbackCompletion")
 public static function imGuiInputTextFlagsCallbackCompletion(): Int;
 /**
- * Callback on any edit (note that InputText() already returns true on edit,
+ * Callback on any edit. Note that InputText already returns true on edit +
   
- * the callback is useful mainly to manipulate the underlying buffer while
+ * you can always use IsItemEdited. The callback is useful to manipulate the
   
- * focus is active).
+ * underlying buffer while focus is active.
  */
 @:native("ImGui_InputTextFlags_CallbackEdit")
 public static function imGuiInputTextFlagsCallbackEdit(): Int;
@@ -2464,9 +2570,16 @@ public static function imGuiInputTextFlagsCtrlEnterForNewLine(): Int;
 @:native("ImGui_InputTextFlags_DisplayEmptyRefVal")
 public static function imGuiInputTextFlagsDisplayEmptyRefVal(): Int;
 /**
- * Return 'true' when Enter is pressed (as opposed to every time the value was
- 
- * modified). Consider looking at the IsItemDeactivatedAfterEdit function.
+ * When text doesn't fit, elide left side to ensure right side stays visible.
+  
+ * Useful for path/filenames. Single-line only!
+ */
+@:native("ImGui_InputTextFlags_ElideLeft")
+public static function imGuiInputTextFlagsElideLeft(): Int;
+/**
+ * Return true when Enter is pressed (as opposed to every time the value was
+  
+ * modified). Consider using IsItemDeactivatedAfterEdit instead!
  */
 @:native("ImGui_InputTextFlags_EnterReturnsTrue")
 public static function imGuiInputTextFlagsEnterReturnsTrue(): Int;
@@ -2678,6 +2791,17 @@ public static function imGuiIsMousePosValid(ctX: ImGuiContext, ?mousePosXIn: Flo
 @:native("ImGui_IsMouseReleased")
 public static function imGuiIsMouseReleased(ctX: ImGuiContext, button: Int): Bool;
 /**
+ * Delayed mouse release (use sparingly!). Generally used with
+`delay >=
+ * ConfigVar_MouseDoubleClickTime` + combined with a
+`GetMouseClickedCount()==1`
+ * test. This is a very rarely used UI idiom,
+but some apps use this: e.g. MS
+ * Explorer single click on an icon to rename.
+ */
+@:native("ImGui_IsMouseReleasedWithDelay")
+public static function imGuiIsMouseReleasedWithDelay(ctX: ImGuiContext, button: Int, delaY: Float): Bool;
+/**
  * Return true if the popup is open at the current BeginPopup level of the
 popup
  * stack.
@@ -2728,6 +2852,57 @@ See HoveredFlags_* for options.
  */
 @:native("ImGui_IsWindowHovered")
 public static function imGuiIsWindowHovered(ctX: ImGuiContext, ?flagsIn: Int): Bool;
+/**
+ * Allow submitting an item with the same identifier as an item already
+  
+ * submitted this frame without triggering a warning tooltip if
+  
+ * ConfigVar_ConfigDebugHighlightIdConflicts is set.
+ */
+@:native("ImGui_ItemFlags_AllowDuplicateId")
+public static function imGuiItemFlagsAllowDuplicateId(): Int;
+/**
+ * MenuItem/Selectable automatically close their parent popup window.
+   Default
+ * = true
+ */
+@:native("ImGui_ItemFlags_AutoClosePopups")
+public static function imGuiItemFlagsAutoClosePopups(): Int;
+/**
+ * Any button-like behavior will have repeat mode enabled (based on
+  
+ * ConfigVar_KeyRepeatDelay and ConfigVar_KeyRepeatRate values). Note that you
+ 
+ * can also call IsItemActive after any button to tell if it is being held.
+  
+ * Default = false
+ */
+@:native("ImGui_ItemFlags_ButtonRepeat")
+public static function imGuiItemFlagsButtonRepeat(): Int;
+/**
+ * Disable any form of focusing (keyboard/gamepad directional navigation and
+  
+ * SetKeyboardFocusHere calls). Default = false
+ */
+@:native("ImGui_ItemFlags_NoNav")
+public static function imGuiItemFlagsNoNav(): Int;
+/**
+ * Disable item being a candidate for default focus (e.g. used by title bar
+  
+ * items). Default = false
+ */
+@:native("ImGui_ItemFlags_NoNavDefaultFocus")
+public static function imGuiItemFlagsNoNavDefaultFocus(): Int;
+/**
+ * Disable keyboard tabbing. This is a "lighter" version of ItemFlags_NoNav.
+  
+ * Default = false.
+ */
+@:native("ImGui_ItemFlags_NoTabStop")
+public static function imGuiItemFlagsNoTabStop(): Int;
+/** No description available */
+@:native("ImGui_ItemFlags_None")
+public static function imGuiItemFlagsNone(): Int;
 /** No description available */
 @:native("ImGui_Key_0")
 public static function imGuiKey0(): Int;
@@ -2977,7 +3152,9 @@ public static function imGuiKeyKeypadSubtract(): Int;
 /** No description available */
 @:native("ImGui_Key_L")
 public static function imGuiKeyL(): Int;
-/** No description available */
+/**
+ * See also Mod_Alt
+ */
 @:native("ImGui_Key_LeftAlt")
 public static function imGuiKeyLeftAlt(): Int;
 /** No description available */
@@ -2988,19 +3165,27 @@ public static function imGuiKeyLeftArrow(): Int;
  */
 @:native("ImGui_Key_LeftBracket")
 public static function imGuiKeyLeftBracket(): Int;
-/** No description available */
+/**
+ * See also Mod_Ctrl
+ */
 @:native("ImGui_Key_LeftCtrl")
 public static function imGuiKeyLeftCtrl(): Int;
-/** No description available */
+/**
+ * See also Mod_Shift
+ */
 @:native("ImGui_Key_LeftShift")
 public static function imGuiKeyLeftShift(): Int;
-/** No description available */
+/**
+ * See also Mod_Super
+ */
 @:native("ImGui_Key_LeftSuper")
 public static function imGuiKeyLeftSuper(): Int;
 /** No description available */
 @:native("ImGui_Key_M")
 public static function imGuiKeyM(): Int;
-/** No description available */
+/**
+ * Also known as the application key
+ */
 @:native("ImGui_Key_Menu")
 public static function imGuiKeyMenu(): Int;
 /**
@@ -3038,6 +3223,11 @@ public static function imGuiKeyNumLock(): Int;
 /** No description available */
 @:native("ImGui_Key_O")
 public static function imGuiKeyO(): Int;
+/**
+ * Key next to the left shift on ISO keyboards.
+ */
+@:native("ImGui_Key_Oem102")
+public static function imGuiKeyOem102(): Int;
 /** No description available */
 @:native("ImGui_Key_P")
 public static function imGuiKeyP(): Int;
@@ -3064,7 +3254,9 @@ public static function imGuiKeyQ(): Int;
 /** No description available */
 @:native("ImGui_Key_R")
 public static function imGuiKeyR(): Int;
-/** No description available */
+/**
+ * See also Mod_Alt
+ */
 @:native("ImGui_Key_RightAlt")
 public static function imGuiKeyRightAlt(): Int;
 /** No description available */
@@ -3075,13 +3267,19 @@ public static function imGuiKeyRightArrow(): Int;
  */
 @:native("ImGui_Key_RightBracket")
 public static function imGuiKeyRightBracket(): Int;
-/** No description available */
+/**
+ * See also Mod_Ctrl
+ */
 @:native("ImGui_Key_RightCtrl")
 public static function imGuiKeyRightCtrl(): Int;
-/** No description available */
+/**
+ * See also Mod_Shift
+ */
 @:native("ImGui_Key_RightShift")
 public static function imGuiKeyRightShift(): Int;
-/** No description available */
+/**
+ * See also Mod_Super
+ */
 @:native("ImGui_Key_RightSuper")
 public static function imGuiKeyRightSuper(): Int;
 /** No description available */
@@ -3144,15 +3342,17 @@ Each
 @:native("ImGui_ListBox")
 public static function imGuiListBox(ctX: ImGuiContext, label: String, currentItem: Int, items: String, ?heightInItemsIn: Int): Bool;
 /**
- * - items_count: Use INT_MAX if you don't know how many items you have
-(in
- * which case the cursor won't be advanced in the final step)
-- items_height:
- * Use -1.0 to be calculated automatically on first step.
-  Otherwise pass in
- * the distance between your items, typically
-  GetTextLineHeightWithSpacing or
- * GetFrameHeightWithSpacing.
+ * - items_count: Use INT_MAX from NumericLimits_Int if you don't know how
+ * many
+items you have (in which case the cursor won't be advanced in the final
+ * step,
+and you can call SeekCursorForItem manually if you need)
+-
+ * items_height: Use -1.0 to be calculated automatically on first step.
+ 
+ * Otherwise pass in the distance between your items, typically
+ 
+ * GetTextLineHeightWithSpacing or GetFrameHeightWithSpacing.
  */
 @:native("ImGui_ListClipper_Begin")
 public static function imGuiListClipperBegin(clipper: ImGuiListClipper, itemsCount: Int, ?itemsHeigHtIn: Float): Void;
@@ -3184,6 +3384,18 @@ item_end is exclusive e.g. use (42, 42+1)
  */
 @:native("ImGui_ListClipper_IncludeItemsByIndex")
 public static function imGuiListClipperIncludeItemsByIndex(clipper: ImGuiListClipper, itemBegin: Int, itemEnd: Int): Void;
+/**
+ * Seek cursor toward given item. This is automatically called while
+ * stepping.
+The only reason to call this is: you can use
+ * ListClipper_Begin(INT_MAX) if you
+don't know item count ahead of time. In
+ * this case, after all steps are done,
+you'll want to call
+ * SeekCursorForItem(items_count).
+ */
+@:native("ImGui_ListClipper_SeekCursorForItem")
+public static function imGuiListClipperSeekCursorForItem(clipper: ImGuiListClipper, itemsCount: Int): Void;
 /**
  * Call until it returns false. The display_start/display_end fields
  * from
@@ -3276,6 +3488,12 @@ public static function imGuiMouseCursorNone(): Int;
 @:native("ImGui_MouseCursor_NotAllowed")
 public static function imGuiMouseCursorNotAllowed(): Int;
 /**
+ * When waiting for something to process/load, but application is still
+ * interactive.
+ */
+@:native("ImGui_MouseCursor_Progress")
+public static function imGuiMouseCursorProgress(): Int;
+/**
  * (Unused by Dear ImGui functions)
  */
 @:native("ImGui_MouseCursor_ResizeAll")
@@ -3305,6 +3523,11 @@ public static function imGuiMouseCursorResizeNwse(): Int;
  */
 @:native("ImGui_MouseCursor_TextInput")
 public static function imGuiMouseCursorTextInput(): Int;
+/**
+ * When waiting for something to process/load.
+ */
+@:native("ImGui_MouseCursor_Wait")
+public static function imGuiMouseCursorWait(): Int;
 /**
  * Undo a SameLine() or force a new line when in a horizontal-layout context.
  */
@@ -3366,11 +3589,6 @@ Windows and Linux.
 @:native("ImGui_PointConvertNative")
 public static function imGuiPointConvertNative(ctX: ImGuiContext, x: Float, y: Float, ?toNativeIn: Bool): Float;
 /**
- * See PushButtonRepeat
- */
-@:native("ImGui_PopButtonRepeat")
-public static function imGuiPopButtonRepeat(ctX: ImGuiContext): Void;
-/**
  * See PushClipRect
  */
 @:native("ImGui_PopClipRect")
@@ -3386,6 +3604,11 @@ public static function imGuiPopFont(ctX: ImGuiContext): Void;
 @:native("ImGui_PopID")
 public static function imGuiPopId(ctX: ImGuiContext): Void;
 /**
+ * See PushItemFlag
+ */
+@:native("ImGui_PopItemFlag")
+public static function imGuiPopItemFlag(ctX: ImGuiContext): Void;
+/**
  * See PushItemWidth
  */
 @:native("ImGui_PopItemWidth")
@@ -3398,11 +3621,6 @@ public static function imGuiPopStyleColor(ctX: ImGuiContext, ?countIn: Int): Voi
  */
 @:native("ImGui_PopStyleVar")
 public static function imGuiPopStyleVar(ctX: ImGuiContext, ?countIn: Int): Void;
-/**
- * See PushTabStop
- */
-@:native("ImGui_PopTabStop")
-public static function imGuiPopTabStop(ctX: ImGuiContext): Void;
 /** No description available */
 @:native("ImGui_PopTextWrapPos")
 public static function imGuiPopTextWrapPos(ctX: ImGuiContext): Void;
@@ -3473,32 +3691,26 @@ The value must be animated along with time, for example `-1.0 *
  */
 @:native("ImGui_ProgressBar")
 public static function imGuiProgressBar(ctX: ImGuiContext, fraction: Float, ?sizeArgWIn: Float, ?sizeArgHIn: Float, ?overlaYIn: String): Void;
-/**
- * In 'repeat' mode, Button*() functions return repeated true in a
- * typematic
-manner (using ConfigVar_KeyRepeatDelay/ConfigVar_KeyRepeatRate
- * settings).
-Note that you can call IsItemActive after any Button to tell if
- * the button is
-held in the current frame.
- */
-@:native("ImGui_PushButtonRepeat")
-public static function imGuiPushButtonRepeat(ctX: ImGuiContext, repeat: Bool): Void;
 /** No description available */
 @:native("ImGui_PushClipRect")
 public static function imGuiPushClipRect(ctX: ImGuiContext, clipRectMinX: Float, clipRectMinY: Float, clipRectMaXX: Float, clipRectMaXY: Float, intersectWitHCurrentClipRect: Bool): Void;
 /**
- * Change the current font. Use nil to push the default font.
-The font object
- * must have been registered using Attach. See PopFont.
+ * Change the current font. Pass font=nil to only change the size. See PopFont.
  */
 @:native("ImGui_PushFont")
-public static function imGuiPushFont(ctX: ImGuiContext, font: ImGuiFont): Void;
+public static function imGuiPushFont(ctX: ImGuiContext, font: ImGuiFont, fontSizeBaseUnscaled: Float): Void;
 /**
  * Push string into the ID stack.
  */
 @:native("ImGui_PushID")
 public static function imGuiPushId(ctX: ImGuiContext, strId: String): Void;
+/**
+ * Modify specified shared item flag for certain widgets.
+Example:
+ * `PushItemFlag(ItemFlags_NoTabStop, true)`.
+ */
+@:native("ImGui_PushItemFlag")
+public static function imGuiPushItemFlag(ctX: ImGuiContext, option: Int, enabled: Bool): Void;
 /**
  * Push width of items for common large "item+label" widgets.
 - \>0.0: width in
@@ -3522,18 +3734,20 @@ public static function imGuiPushStyleColor(ctX: ImGuiContext, idX: Int, colRgba:
  * Temporarily modify a style variable.
 Call PopStyleVar to undo after use
  * (before the end of the frame).
-See StyleVar_* for possible values of
- * 'var_idx'.
+See StyleVar_* for possible values of 'idx'.
  */
 @:native("ImGui_PushStyleVar")
-public static function imGuiPushStyleVar(ctX: ImGuiContext, varIdX: Int, val1: Float, ?val2In: Float): Void;
+public static function imGuiPushStyleVar(ctX: ImGuiContext, idX: Int, val1: Float, ?val2In: Float): Void;
 /**
- * Allow focusing using TAB/Shift-TAB, enabled by default but you can disable
- * it
-for certain widgets
+ * Modify the X component of a style variable. See PushStyleVar.
  */
-@:native("ImGui_PushTabStop")
-public static function imGuiPushTabStop(ctX: ImGuiContext, tabStop: Bool): Void;
+@:native("ImGui_PushStyleVarX")
+public static function imGuiPushStyleVarX(ctX: ImGuiContext, idX: Int, valX: Float): Void;
+/**
+ * Modify the X component of a style variable. See PushStyleVar.
+ */
+@:native("ImGui_PushStyleVarY")
+public static function imGuiPushStyleVarY(ctX: ImGuiContext, idX: Int, valY: Float): Void;
 /**
  * Push word-wrapping position for Text*() commands.
 -  < 0.0: no wrapping
@@ -3583,10 +3797,16 @@ public static function imGuiSelectableFlagsAllowOverlap(): Int;
 @:native("ImGui_SelectableFlags_Disabled")
 public static function imGuiSelectableFlagsDisabled(): Int;
 /**
- * Clicking this doesn't close parent popup window.
+ * Make the item be displayed as if it is hovered.
  */
-@:native("ImGui_SelectableFlags_DontClosePopups")
-public static function imGuiSelectableFlagsDontClosePopups(): Int;
+@:native("ImGui_SelectableFlags_Highlight")
+public static function imGuiSelectableFlagsHighlight(): Int;
+/**
+ * Clicking this doesn't close parent popup window (overrides
+ * ItemFlags_AutoClosePopups)
+ */
+@:native("ImGui_SelectableFlags_NoAutoClosePopups")
+public static function imGuiSelectableFlagsNoAutoClosePopups(): Int;
 /** No description available */
 @:native("ImGui_SelectableFlags_None")
 public static function imGuiSelectableFlagsNone(): Int;
@@ -3655,7 +3875,7 @@ Data is copied and held
 @:native("ImGui_SetDragDropPayload")
 public static function imGuiSetDragDropPayload(ctX: ImGuiContext, tYpe: String, data: String, ?condIn: Int): Bool;
 /**
- * Make last item the default focused item of a window.
+ * Make last item the default focused item of a newly appearing window.
  */
 @:native("ImGui_SetItemDefaultFocus")
 public static function imGuiSetItemDefaultFocus(ctX: ImGuiContext): Void;
@@ -3681,6 +3901,13 @@ public static function imGuiSetKeyboardFocusHere(ctX: ImGuiContext, ?offSetIn: I
  */
 @:native("ImGui_SetMouseCursor")
 public static function imGuiSetMouseCursor(ctX: ImGuiContext, cursorTYpe: Int): Void;
+/**
+ * Alter visibility of keyboard/gamepad cursor. By default: shown when using
+ * an
+arrow key, hidden when clicking with the mouse.
+ */
+@:native("ImGui_SetNavCursorVisible")
+public static function imGuiSetNavCursorVisible(ctX: ImGuiContext, visible: Bool): Void;
 /**
  * Request capture of keyboard shortcuts in REAPER's global scope for the next
  * frame.
@@ -3941,12 +4168,26 @@ public static function imGuiSliderDouble4(ctX: ImGuiContext, label: String, v1: 
 @:native("ImGui_SliderDoubleN")
 public static function imGuiSliderDoubleN(ctX: ImGuiContext, label: String, values: ReaperArray, vMin: Float, vMaX: Float, ?formatIn: String, ?flagsIn: Int): Bool;
 /**
- * Clamp value to min/max bounds when input manually with CTRL+Click.
-   By
- * default CTRL+Click allows going out of bounds.
+ * SliderFlags_ClampOnInput | SliderFlags_ClampZeroRange
  */
 @:native("ImGui_SliderFlags_AlwaysClamp")
 public static function imGuiSliderFlagsAlwaysClamp(): Int;
+/**
+ * Clamp value to min/max bounds when input manually with Ctrl+Click.
+   By
+ * default Ctrl+Click allows going out of bounds.
+ */
+@:native("ImGui_SliderFlags_ClampOnInput")
+public static function imGuiSliderFlagsClampOnInput(): Int;
+/**
+ * Clamp even if min==max==0. Otherwise due to legacy reason Drag* functions
+  
+ * don't clamp with those values. When your clamping limits are dynamic you
+  
+ * almost always want to use it.
+ */
+@:native("ImGui_SliderFlags_ClampZeroRange")
+public static function imGuiSliderFlagsClampZeroRange(): Int;
 /**
  * Make the widget logarithmic (linear otherwise).
    Consider using
@@ -3969,13 +4210,20 @@ public static function imGuiSliderFlagsNoInput(): Int;
  */
 @:native("ImGui_SliderFlags_NoRoundToFormat")
 public static function imGuiSliderFlagsNoRoundToFormat(): Int;
+/**
+ * Disable keyboard modifiers altering tweak speed.
+   Useful if you want to
+ * alter tweak speed yourself based on your own logic.
+ */
+@:native("ImGui_SliderFlags_NoSpeedTweaks")
+public static function imGuiSliderFlagsNoSpeedTweaks(): Int;
 /** No description available */
 @:native("ImGui_SliderFlags_None")
 public static function imGuiSliderFlagsNone(): Int;
 /**
- * Enable wrapping around from max to min and from min to max
-   (only supported
- * by DragXXX() functions for now).
+ * Enable wrapping around from max to min and from min to max.
+   Only supported
+ * by Drag* functions for now.
  */
 @:native("ImGui_SliderFlags_WrapAround")
 public static function imGuiSliderFlagsWrapAround(): Int;
@@ -4085,6 +4333,11 @@ public static function imGuiStyleVarGrabMinSize(): Int;
 @:native("ImGui_StyleVar_GrabRounding")
 public static function imGuiStyleVarGrabRounding(): Int;
 /**
+ * Thickness of border around Image calls.
+ */
+@:native("ImGui_StyleVar_ImageBorderSize")
+public static function imGuiStyleVarImageBorderSize(): Int;
+/**
  * Horizontal indentation when e.g. entering a tree node.
    Generally ==
  * (GetFontSize + StyleVar_FramePadding.x*2).
@@ -4163,6 +4416,11 @@ public static function imGuiStyleVarSeparatorTextPadding(): Int;
 @:native("ImGui_StyleVar_TabBarBorderSize")
 public static function imGuiStyleVarTabBarBorderSize(): Int;
 /**
+ * Thickness of tab-bar overline, which highlights the selected tab-bar.
+ */
+@:native("ImGui_StyleVar_TabBarOverlineSize")
+public static function imGuiStyleVarTabBarOverlineSize(): Int;
+/**
  * Thickness of border around tabs.
  */
 @:native("ImGui_StyleVar_TabBorderSize")
@@ -4183,6 +4441,16 @@ public static function imGuiStyleVarTableAngledHeadersAngle(): Int;
  */
 @:native("ImGui_StyleVar_TableAngledHeadersTextAlign")
 public static function imGuiStyleVarTableAngledHeadersTextAlign(): Int;
+/**
+ * Radius of lines connecting child nodes to the vertical line.
+ */
+@:native("ImGui_StyleVar_TreeLinesRounding")
+public static function imGuiStyleVarTreeLinesRounding(): Int;
+/**
+ * Thickness of outlines when using TreeNodeFlags_DrawLines.
+ */
+@:native("ImGui_StyleVar_TreeLinesSize")
+public static function imGuiStyleVarTreeLinesSize(): Int;
 /**
  * Thickness of border around windows. Generally set to 0.0 or 1.0.
   (Other
@@ -4434,11 +4702,14 @@ public static function imGuiTableColumnFlagsIsVisible(): Int;
 @:native("ImGui_TableColumnFlags_NoClip")
 public static function imGuiTableColumnFlagsNoClip(): Int;
 /**
- * TableHeadersRow will not submit horizontal label for this column.
-  
- * Convenient for some small columns. Name will still appear in context menu
-  
- * or in angled headers.
+ * TableHeadersRow will submit an empty label for this column.
+   Convenient for
+ * some small columns.
+   Name will still appear in context menu or in angled
+ * headers.
+   You may append into this cell by calling TableSetColumnIndex
+ * right after
+   the TableHeadersRow call.
  */
 @:native("ImGui_TableColumnFlags_NoHeaderLabel")
 public static function imGuiTableColumnFlagsNoHeaderLabel(): Int;
@@ -4909,6 +5180,16 @@ public static function imGuiTextFilterPassFilter(filter: ImGuiTextFilter, teXt: 
 @:native("ImGui_TextFilter_Set")
 public static function imGuiTextFilterSet(filter: ImGuiTextFilter, filterTeXt: String): Void;
 /**
+ * Hyperlink text button, returns true when clicked.
+ */
+@:native("ImGui_TextLink")
+public static function imGuiTextLink(ctX: ImGuiContext, label: String): Bool;
+/**
+ * Hyperlink text button, automatically open file/url when clicked
+ */
+@:native("ImGui_TextLinkOpenURL")
+public static function imGuiTextLinkOpenUrl(ctX: ImGuiContext, label: String, ?urlIn: String): Bool;
+/**
  * Shortcut for PushTextWrapPos(0.0); Text(text); PopTextWrapPos();.
 Note that
  * this won't work on an auto-resizing window if there's no other
@@ -4959,6 +5240,27 @@ public static function imGuiTreeNodeFlagsCollapsingHeader(): Int;
 @:native("ImGui_TreeNodeFlags_DefaultOpen")
 public static function imGuiTreeNodeFlagsDefaultOpen(): Int;
 /**
+ * Horizontal lines to child nodes.
+   Vertical line drawn down to TreePop()
+ * position: cover full contents.
+   Faster (for large trees).
+ */
+@:native("ImGui_TreeNodeFlags_DrawLinesFull")
+public static function imGuiTreeNodeFlagsDrawLinesFull(): Int;
+/**
+ * No lines drawn
+ */
+@:native("ImGui_TreeNodeFlags_DrawLinesNone")
+public static function imGuiTreeNodeFlagsDrawLinesNone(): Int;
+/**
+ * Horizontal lines to child nodes.
+   Vertical line drawn down to bottom-most
+ * child node.
+   Slower (for large trees).
+ */
+@:native("ImGui_TreeNodeFlags_DrawLinesToNodes")
+public static function imGuiTreeNodeFlagsDrawLinesToNodes(): Int;
+/**
  * Use FramePadding (even for an unframed text node) to vertically align text
   
  * baseline to regular widget height.
@@ -4973,10 +5275,22 @@ public static function imGuiTreeNodeFlagsFramePadding(): Int;
 @:native("ImGui_TreeNodeFlags_Framed")
 public static function imGuiTreeNodeFlagsFramed(): Int;
 /**
+ * Label will span all columns of its container table
+ */
+@:native("ImGui_TreeNodeFlags_LabelSpanAllColumns")
+public static function imGuiTreeNodeFlagsLabelSpanAllColumns(): Int;
+/**
  * No collapsing, no arrow (use as a convenience for leaf nodes).
  */
 @:native("ImGui_TreeNodeFlags_Leaf")
 public static function imGuiTreeNodeFlagsLeaf(): Int;
+/**
+ * Nav: left arrow moves back to parent. This is processed in TreePop when
+  
+ * there's an unfullfilled Left nav request remaining.
+ */
+@:native("ImGui_TreeNodeFlags_NavLeftJumpsToParent")
+public static function imGuiTreeNodeFlagsNavLeftJumpsToParent(): Int;
 /**
  * Don't automatically and temporarily open node when Logging is active
    (by
@@ -4995,16 +5309,17 @@ public static function imGuiTreeNodeFlagsNoTreePushOnOpen(): Int;
 @:native("ImGui_TreeNodeFlags_None")
 public static function imGuiTreeNodeFlagsNone(): Int;
 /**
- * Only open when clicking on the arrow part.
-   If
- * TreeNodeFlags_OpenOnDoubleClick is also set, single-click arrow or
+ * Open when clicking on the arrow part (default for multi-select unless any
   
- * double-click all box to open.
+ * _OpenOnXXX behavior is set explicitly). Both behaviors may be combined.
  */
 @:native("ImGui_TreeNodeFlags_OpenOnArrow")
 public static function imGuiTreeNodeFlagsOpenOnArrow(): Int;
 /**
- * Need double-click to open node.
+ * Open on double-click instead of simple click (default for multi-select
+ * unless
+   any _OpenOnXXX behavior is set explicitly). Both behaviors may be
+ * combined.
  */
 @:native("ImGui_TreeNodeFlags_OpenOnDoubleClick")
 public static function imGuiTreeNodeFlagsOpenOnDoubleClick(): Int;
@@ -5014,7 +5329,7 @@ public static function imGuiTreeNodeFlagsOpenOnDoubleClick(): Int;
 @:native("ImGui_TreeNodeFlags_Selected")
 public static function imGuiTreeNodeFlagsSelected(): Int;
 /**
- * Frame will span all columns of its container table (text will still fit in
+ * Frame will span all columns of its container table (label will still fit in
  * current column).
  */
 @:native("ImGui_TreeNodeFlags_SpanAllColumns")
@@ -5039,8 +5354,8 @@ public static function imGuiTreeNodeFlagsSpanFullWidth(): Int;
 /**
  * Narrow hit box + narrow hovering highlight, will only cover the label text.
  */
-@:native("ImGui_TreeNodeFlags_SpanTextWidth")
-public static function imGuiTreeNodeFlagsSpanTextWidth(): Int;
+@:native("ImGui_TreeNodeFlags_SpanLabelWidth")
+public static function imGuiTreeNodeFlagsSpanLabelWidth(): Int;
 /**
  * Unindent()+PopID()
  */
@@ -5078,11 +5393,12 @@ types (indentation represents inheritance):
 - ImGui_Function*
 -
  * ImGui_Image*
+  - ImGui_Bitmap*
   - ImGui_ImageSet*
 - ImGui_ListClipper*
-- ImGui_TextFilter*
 -
- * ImGui_Viewport*
+ * ImGui_TextFilter*
+- ImGui_Viewport*
  */
 @:native("ImGui_ValidatePtr")
 public static function imGuiValidatePtr(pointer: Identifier, tYpe: String): Bool;
@@ -5197,14 +5513,14 @@ public static function imGuiWindowFlagsNoMove(): Int;
 @:native("ImGui_WindowFlags_NoNav")
 public static function imGuiWindowFlagsNoNav(): Int;
 /**
- * No focusing toward this window with gamepad/keyboard navigation
+ * No focusing toward this window with keyboard/gamepad navigation
    (e.g.
  * skipped by CTRL+TAB).
  */
 @:native("ImGui_WindowFlags_NoNavFocus")
 public static function imGuiWindowFlagsNoNavFocus(): Int;
 /**
- * No gamepad/keyboard navigation within the window.
+ * No keyboard/gamepad navigation within the window.
  */
 @:native("ImGui_WindowFlags_NoNavInputs")
 public static function imGuiWindowFlagsNoNavInputs(): Int;
@@ -5283,5 +5599,5 @@ public static function imGuiSetshim(version: String, sYmbolName: String): Void;
  * Internal use only.
  */
 @:native("ImGui__shim")
-public static function imGuiShim(): Void;
+public static function imGuiShim(: ImGuiContext, : ImGuiFont): Void;
 }
