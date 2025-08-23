@@ -1,3 +1,7 @@
+package reaper;
+
+import reaper.Types;
+
 @:native("reaper")
 extern class Reaper {
 /**
@@ -1313,9 +1317,6 @@ P_SOURCE : PCM_source
  */
 @:native("GetMediaItemTakeInfo_Value")
 public static function getMediaItemTakeInfoValue(take: MediaItemTake, pArmName: String): Float;
-/** No description available */
-@:native("GetMediaItemTrack")
-public static function getMediaItemTrack(item: MediaItem): MediaTrack;
 /**
  * Copies the media source filename to filenamebuf. Note that in-project MIDI
  * media sources have no associated filename. See GetMediaSourceParent.
@@ -2546,7 +2547,7 @@ public static function hasTrackMidiProgramsEx(proj: ReaProject, track: MediaTrac
 public static function helpSet(helpstring: String, isTemporarYHelp: Bool): Void;
 /** No description available */
 @:native("image_resolve_fn")
-public static function imageResolveFn(in: String, out: String): String;
+public static function imageResolveFn(_in: String, out: String): String;
 /**
  * Insert a new automation item. pool_id < 0 collects existing envelope points
  * into the automation item; if pool_id is >= 0 the automation item will be a
@@ -3408,7 +3409,7 @@ public static function refreshToolbar2(sectionId: Int, commandId: Int): Void;
  * Makes a filename "in" relative to the current project, if any.
  */
 @:native("relative_fn")
-public static function relativeFn(in: String, out: String): String;
+public static function relativeFn(_in: String, out: String): String;
 /**
  * Remove a send/receive/hardware output, return true on success. category is <0
  * for receives, 0=sends, >0 for hardware outputs. See CreateTrackSend,
@@ -3438,13 +3439,13 @@ public static function resampleEnumModes(mode: Int): String;
  * See resolve_fn2.
  */
 @:native("resolve_fn")
-public static function resolveFn(in: String, out: String): String;
+public static function resolveFn(_in: String, out: String): String;
 /**
  * Resolves a filename "in" by using project settings etc. If no file found, out
  * will be a copy of in.
  */
 @:native("resolve_fn2")
-public static function resolveFn2(in: String, out: String, ?cHeckSubDir: String): String;
+public static function resolveFn2(_in: String, out: String, ?cHeckSubDir: String): String;
 /**
  * Get the named command for the given command ID. The returned string will not
  * start with '_' (e.g. it will return "SWS_ABOUT"), it will be NULL if
@@ -9479,7 +9480,7 @@ public static function xenStopSourcePreview(previeWId: Int): Int;
  * code.
  */
 @:native("atexit")
-public static function atexit(function: () -> Void): Void;
+public static function atexit(_function: () -> Void): Void;
 /**
  * Adds code to be called back by REAPER. Used to create persistent ReaScripts
  * that continue to run and respond to input, while the user does other tasks.
@@ -9488,7 +9489,7 @@ Note that no undo point will be automatically created
  * when the script finishes, unless you create it explicitly.
  */
 @:native("defer")
-public static function defer(function: () -> Void): Void;
+public static function defer(_function: () -> Void): Void;
 /**
  * is_new_value,filename,sectionID,cmdID,mode,resolution,val,contextstr =
  * reaper.get_action_context()
@@ -9535,7 +9536,7 @@ Note that no undo point will be automatically created
  * when the script finishes, unless you create it explicitly.
  */
 @:native("runloop")
-public static function runloop(function: () -> Void): Void;
+public static function runloop(_function: () -> Void): Void;
 /**
  * reaper.set_action_options(flag)
 Sets action options for the script.

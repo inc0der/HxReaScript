@@ -1,3 +1,10 @@
+package reaper;
+
+typedef Rect = {
+  Int width = 0
+  Int height = 0
+}
+
 extern class MediaTrack {}
 extern class MediaItem {}
 extern class ReaProject {}

@@ -1,3 +1,7 @@
+package reaper;
+
+import reaper.Types;
+
 @:native("reaper")
 extern class ImGui {
 /**

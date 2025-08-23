@@ -16,16 +16,14 @@ class Test {
 	}
 
   static function changeColor(r: Float, g: Float, b: Float) {
-    Graphics.r = r;
-    Graphics.g = g;
-    Graphics.b = b;
+    Graphics.set(r, g, b);
   }
 
   static function drawTextCenter(text: String) {
-    var textW = Graphics.measureText(text);
+    var textW = Graphics.measurestr(text);
     Graphics.x = Graphics.w / 2 - textW / 2;
     Graphics.y = Graphics.h / 2;
-    Graphics.drawString(text, 0x05);
+    Graphics.drawstr(text, 0x05);
   }
 
   static function drawGraphics() {

@@ -1,3 +1,7 @@
+package reaper;
+
+import reaper.Types;
+
 @:native("gfx")
 extern class Graphics {
 /**
