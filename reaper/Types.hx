@@ -1,5 +1,8 @@
 package reaper;
 
+extern class MrpArray {}
+extern class MrpWindow {}
+extern class Userdata {}
 extern class MediaTrack {}
 extern class MediaItem {}
 extern class ReaProject {}
