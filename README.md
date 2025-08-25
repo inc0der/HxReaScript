@@ -1,7 +1,9 @@
 # HxReaScript
 Haxe externs(bindings) for Reaper's Lua ReaScript variant, write your Reaper plugins in Haxe and compile to Lua for ReaScript.
 
-** Currently in ALpha, major changes may be made in the future **
+**Currently in Alpha, major changes may be made in the future**
+
+The Haxe externs are generated via the [reascript2hx](https://github.com/inc0der/reascript2hx) parser for lua documentation files provided by [vscode-reascript-extension](https://github.com/AntoineBalaine/vscode-reascript-extension).
 
 ## Getting Started
 
@@ -23,4 +25,4 @@ Haxe externs(bindings) for Reaper's Lua ReaScript variant, write your Reaper plu
 ```
 
 ## Note
-Since it appears many of the C++ and Lua method names are similar this may be a good base to compile to the C++ ReaScript variant.
+Since it appears many of the C++ and Lua method names are similar this may be a good base to compile to the C++ ReaScript variant in future revisions.
