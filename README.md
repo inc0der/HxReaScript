@@ -1,6 +1,8 @@
 # HxReaScript
 Haxe externs(bindings) for Reaper's Lua ReaScript variant, write your Reaper plugins in Haxe and compile to Lua for ReaScript.
 
+** Currently in ALpha, major changes may be made in the future **
+
 ## Getting Started
 
 1. Install Haxe
