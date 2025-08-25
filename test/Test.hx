@@ -29,7 +29,7 @@ class Test {
   static function drawGraphics() {
     Graphics.clear = 0x222222;
     Test.changeColor(0.2, 0.6, 0.2);
-    Graphics.circle(Graphics.w / 2, Graphics.h / 2, 100, true, true);
+    Graphics.circle(Graphics.w / 2, Graphics.h / 2, 100, 1.0, 1.0);
     Test.changeColor(0.2, 0.2, 0.2);
     Test.drawTextCenter("Hello World");
     Graphics.update();
